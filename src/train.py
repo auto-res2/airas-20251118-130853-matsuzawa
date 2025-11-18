@@ -66,7 +66,8 @@ class _NVMLPowerLogger:
         dt_h = (now - self._last_ts) / 3600.0
         self._kwh += power_w * dt_h
         self._last_ts = now
-        wandb.log({"gpu_power_W": power_w, "cumulative_kWh": self._kwh, "step": step})
+        if wandb.run is not None:
+            wandb.log({"gpu_power_W": power_w, "cumulative_kWh": self._kwh, "step": step})
 
 
 # ----------------------------------------------------------------------------------
