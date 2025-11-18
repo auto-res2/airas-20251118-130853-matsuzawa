@@ -152,7 +152,6 @@ class BLAC(BaseController):
         self._cos_ema = self.rho * self._cos_ema + (1 - self.rho) * torch.tensor(cos_list, device=self.device)
 
     # ------------------------------------------------------------------
-    @torch.no_grad()
     def on_update_end(self, train_grads: Dict[int, torch.Tensor]):
         self.step_idx += 1
         if self.step_idx % self.K:
@@ -161,19 +160,20 @@ class BLAC(BaseController):
         self._agreement_measure(train_grads)
 
         # freeze bookkeeping ----------------------------------------------------
-        neg_mask = self._cos_ema <= 0
-        self._freeze_cnt[neg_mask] += self.K
-        self._freeze_cnt[~neg_mask] = 0
+        with torch.no_grad():
+            neg_mask = self._cos_ema <= 0
+            self._freeze_cnt[neg_mask] += self.K
+            self._freeze_cnt[~neg_mask] = 0
 
-        pos_agreement = torch.clamp(self._cos_ema, min=0.0)
-        norm = pos_agreement.sum().clamp_min(1e-12)
-        layer_weights = pos_agreement / norm
+            pos_agreement = torch.clamp(self._cos_ema, min=0.0)
+            norm = pos_agreement.sum().clamp_min(1e-12)
+            layer_weights = pos_agreement / norm
 
-        # Orthogonal ℓ2-budget allocation per layer -----------------------------
-        for l_idx, gids in enumerate(self.layer_groups):
-            lr_scale = 0.0 if self._freeze_cnt[l_idx] >= self.U else layer_weights[l_idx].item() * self.n_layers
-            for gid in gids:
-                self.optim.param_groups[gid]["lr"] = self.cfg.training.base_learning_rate * lr_scale
+            # Orthogonal ℓ2-budget allocation per layer -----------------------------
+            for l_idx, gids in enumerate(self.layer_groups):
+                lr_scale = 0.0 if self._freeze_cnt[l_idx] >= self.U else layer_weights[l_idx].item() * self.n_layers
+                for gid in gids:
+                    self.optim.param_groups[gid]["lr"] = self.cfg.training.base_learning_rate * lr_scale
 
 
 # ----------------------------------------------------------------------------------
@@ -289,7 +289,6 @@ class HACBO(BaseController):
             self._curv_ema[l_idx] = self.rho * self._curv_ema[l_idx] + (1 - self.rho) * curv_t
 
     # ------------------------------------------------------------------
-    @torch.no_grad()
     def on_update_end(self, train_grads: Dict[int, torch.Tensor]):
         self.step_idx += 1
         if self.step_idx % self.K:
@@ -301,30 +300,31 @@ class HACBO(BaseController):
             self._refresh_dev_buffer()
 
         # probation update ------------------------------------------------------
-        below = self._agree_ema < self.theta_neg
-        self._neg_streak[below] += 1
-        self._neg_streak[~below] = 0
-        enter = self._neg_streak >= self.F
-        exit_mask = self._agree_ema > 0
-        self._probation[enter] = True
-        self._probation[exit_mask] = False
+        with torch.no_grad():
+            below = self._agree_ema < self.theta_neg
+            self._neg_streak[below] += 1
+            self._neg_streak[~below] = 0
+            enter = self._neg_streak >= self.F
+            exit_mask = self._agree_ema > 0
+            self._probation[enter] = True
+            self._probation[exit_mask] = False
 
-        # Budget allocation -----------------------------------------------------
-        pos_agree = torch.clamp(self._agree_ema, min=0.0)
-        denom = pos_agree.sum().clamp_min(1e-12)
-        w_layer = pos_agree / denom
+            # Budget allocation -----------------------------------------------------
+            pos_agree = torch.clamp(self._agree_ema, min=0.0)
+            denom = pos_agree.sum().clamp_min(1e-12)
+            w_layer = pos_agree / denom
 
-        for l_idx, gids in enumerate(self.layer_groups):
-            # curvature weights within layer -----------------------------------
-            inv_curv = 1.0 / (self._curv_ema[l_idx] + self.eps_c)
-            inv_curv /= inv_curv.sum().clamp_min(1e-12)
+            for l_idx, gids in enumerate(self.layer_groups):
+                # curvature weights within layer -----------------------------------
+                inv_curv = 1.0 / (self._curv_ema[l_idx] + self.eps_c)
+                inv_curv /= inv_curv.sum().clamp_min(1e-12)
 
-            for sub_idx, gid in enumerate(gids):
-                if self._probation[l_idx]:
-                    scale = self.gamma  # heavily down-scaled updates
-                else:
-                    scale = w_layer[l_idx].item() * inv_curv[sub_idx].item() * self.n_layers
-                self.optim.param_groups[gid]["lr"] = self.cfg.training.base_learning_rate * scale
+                for sub_idx, gid in enumerate(gids):
+                    if self._probation[l_idx]:
+                        scale = self.gamma  # heavily down-scaled updates
+                    else:
+                        scale = w_layer[l_idx].item() * inv_curv[sub_idx].item() * self.n_layers
+                    self.optim.param_groups[gid]["lr"] = self.cfg.training.base_learning_rate * scale
 
 
 # ----------------------------------------------------------------------------------
