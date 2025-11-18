@@ -24,6 +24,8 @@ def main(cfg: DictConfig):
     if not run_yaml.exists():
         raise FileNotFoundError(f"Run config {run_yaml} not found.  Ensure run={cfg.run} is valid.")
     run_cfg = OmegaConf.load(run_yaml)
+    # Disable struct mode to allow merging new keys from run_cfg
+    OmegaConf.set_struct(cfg, False)
     merged_cfg = OmegaConf.merge(cfg, run_cfg)
 
     # Mode overrides -----------------------------------------------------------
