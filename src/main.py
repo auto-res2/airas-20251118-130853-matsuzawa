@@ -18,7 +18,9 @@ from omegaconf import DictConfig, OmegaConf
 @hydra.main(config_path="../config", config_name="config")
 def main(cfg: DictConfig):
     # Resolve run-specific YAML -------------------------------------------------
-    run_yaml = Path("config") / "runs" / f"{cfg.run}.yaml"
+    # Use absolute path to handle Hydra's working directory change
+    project_root = Path(__file__).resolve().parent.parent
+    run_yaml = project_root / "config" / "runs" / f"{cfg.run}.yaml"
     if not run_yaml.exists():
         raise FileNotFoundError(f"Run config {run_yaml} not found.  Ensure run={cfg.run} is valid.")
     run_cfg = OmegaConf.load(run_yaml)
