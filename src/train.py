@@ -507,7 +507,9 @@ def _load_cfg_from_hydra() -> DictConfig:
         base_cfg = compose(config_name="config")
 
     # merge with run-specific YAML --------------------------------------------
-    run_yaml = Path("config") / "runs" / f"{base_cfg.run}.yaml"
+    # Use absolute path to handle Hydra's working directory change
+    project_root = Path(__file__).resolve().parent.parent
+    run_yaml = project_root / "config" / "runs" / f"{base_cfg.run}.yaml"
     if not run_yaml.exists():
         raise FileNotFoundError(f"Run config {run_yaml} not found")
     run_cfg = OmegaConf.load(run_yaml)
