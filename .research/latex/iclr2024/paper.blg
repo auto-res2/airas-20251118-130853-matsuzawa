@@ -1,0 +1,95 @@
+This is BibTeX, Version 0.99d (TeX Live 2023/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: paper.aux
+The style file: iclr2024_conference.bst
+Database file #1: references.bib
+Warning--to sort, need author or key in author-year-careful
+Warning--to sort, need author or key in author-year-llemma
+Warning--to sort, need author or key in author-year-openmathinstruct
+Warning--to sort, need author or key in author-year-qlora
+Warning--to sort, need author or key in author-year-lora
+Warning--to sort, need author or key in author-year-evaluating
+Warning--to sort, need author or key in author-year-where
+Warning--to sort, need author or key in author-year-multirate
+Warning--to sort, need author or key in author-year-momo
+Warning--to sort, need author or key in author-year-prodigy
+Warning--to sort, need author or key in author-year-autolrs
+Warning--to sort, need author or key in author-year-mechanic
+Warning--empty author in author-year-autolrs
+Warning--empty journal in author-year-autolrs
+Warning--empty year in author-year-autolrs
+Warning--empty author in author-year-careful
+Warning--empty journal in author-year-careful
+Warning--empty year in author-year-careful
+Warning--empty author in author-year-evaluating
+Warning--empty journal in author-year-evaluating
+Warning--empty year in author-year-evaluating
+Warning--empty author in author-year-llemma
+Warning--empty journal in author-year-llemma
+Warning--empty year in author-year-llemma
+Warning--empty author in author-year-lora
+Warning--empty journal in author-year-lora
+Warning--empty year in author-year-lora
+Warning--empty author in author-year-mechanic
+Warning--empty journal in author-year-mechanic
+Warning--empty year in author-year-mechanic
+Warning--empty author in author-year-momo
+Warning--empty journal in author-year-momo
+Warning--empty year in author-year-momo
+Warning--empty author in author-year-multirate
+Warning--empty journal in author-year-multirate
+Warning--empty year in author-year-multirate
+Warning--empty author in author-year-openmathinstruct
+Warning--empty journal in author-year-openmathinstruct
+Warning--empty year in author-year-openmathinstruct
+Warning--empty author in author-year-prodigy
+Warning--empty journal in author-year-prodigy
+Warning--empty year in author-year-prodigy
+Warning--empty author in author-year-qlora
+Warning--empty journal in author-year-qlora
+Warning--empty year in author-year-qlora
+Warning--empty author in author-year-where
+Warning--empty journal in author-year-where
+Warning--empty year in author-year-where
+You've used 13 entries,
+            2773 wiz_defined-function locations,
+            623 strings with 5904 characters,
+and the built_in function-call counts, 3657 in all, are:
+= -- 322
+> -- 66
+< -- 0
++ -- 45
+- -- 21
+* -- 324
+:= -- 375
+add.period$ -- 27
+call.type$ -- 13
+change.case$ -- 46
+chr.to.int$ -- 2
+cite$ -- 86
+duplicate$ -- 244
+empty$ -- 430
+format.name$ -- 22
+if$ -- 807
+int.to.chr$ -- 12
+int.to.str$ -- 1
+missing$ -- 12
+newline$ -- 61
+num.names$ -- 4
+pop$ -- 203
+preamble$ -- 1
+purify$ -- 33
+quote$ -- 0
+skip$ -- 128
+stack$ -- 0
+substring$ -- 38
+swap$ -- 13
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 143
+warning$ -- 48
+while$ -- 3
+width$ -- 0
+write$ -- 127
+(There were 48 warnings)

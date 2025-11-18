@@ -1,0 +1,64 @@
+\begin{thebibliography}{13}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[aut({\natexlab{a}})]{author-year-autolrs}
+Autolrs: Automatic learning-rate schedule by bayesian optimization on the fly.
+\newblock {\natexlab{a}}.
+
+\bibitem[aut({\natexlab{b}})]{author-year-careful}
+A careful examination of large language model performance on grade school
+  arithmetic.
+\newblock {\natexlab{b}}.
+
+\bibitem[aut({\natexlab{c}})]{author-year-evaluating}
+Evaluating quantized large language models.
+\newblock {\natexlab{c}}.
+
+\bibitem[aut({\natexlab{d}})]{author-year-llemma}
+Llemma: An open language model for mathematics.
+\newblock {\natexlab{d}}.
+
+\bibitem[aut({\natexlab{e}})]{author-year-lora}
+Qa-lora: Quantization-aware low-rank adaptation of large language models.
+\newblock {\natexlab{e}}.
+
+\bibitem[aut({\natexlab{f}})]{author-year-mechanic}
+Mechanic: A learning rate tuner.
+\newblock {\natexlab{f}}.
+
+\bibitem[aut({\natexlab{g}})]{author-year-momo}
+Momo: Momentum models for adaptive learning rates.
+\newblock {\natexlab{g}}.
+
+\bibitem[aut({\natexlab{h}})]{author-year-multirate}
+Multirate training of neural networks.
+\newblock {\natexlab{h}}.
+
+\bibitem[aut({\natexlab{i}})]{author-year-openmathinstruct}
+Openmathinstruct-1: A 1.8 million math instruction tuning dataset.
+\newblock {\natexlab{i}}.
+
+\bibitem[aut({\natexlab{j}})]{author-year-prodigy}
+Prodigy: An expeditiously adaptive parameter-free learner.
+\newblock {\natexlab{j}}.
+
+\bibitem[aut({\natexlab{k}})]{author-year-qlora}
+Qlora: Efficient finetuning of quantized llms.
+\newblock {\natexlab{k}}.
+
+\bibitem[aut({\natexlab{l}})]{author-year-where}
+Where do large learning rates lead us?
+\newblock {\natexlab{l}}.
+
+\bibitem[Tanaka et~al.(2025)Tanaka, Matsuzawa, Yoshino, Horiguchi, Takagi,
+  Yamauchi, and Kumagai]{airas2025}
+Toma Tanaka, Takumi Matsuzawa, Yuki Yoshino, Ilya Horiguchi, Shiro Takagi,
+  Ryutaro Yamauchi, and Wataru Kumagai.
+\newblock {AIRAS}, 2025.
+\newblock URL \url{https://github.com/airas-org/airas}.
+
+\end{thebibliography}
