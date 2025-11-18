@@ -236,6 +236,7 @@ class HACBO(BaseController):
                 input_ids=batch_cuda["input_ids"],
                 attention_mask=batch_cuda["attention_mask"],
                 max_new_tokens=20,
+                do_sample=False,
             )
             for inp, lab, out, ex in zip(
                 batch_cuda["input_ids"], batch_cuda["labels"], gens, batch
@@ -438,6 +439,7 @@ def _single_run(cfg: DictConfig) -> float:
                 input_ids=batch_cuda["input_ids"],
                 attention_mask=batch_cuda["attention_mask"],
                 max_new_tokens=20,
+                do_sample=False,
             )
             for inp, lab, out in zip(
                 batch_cuda["input_ids"], batch_cuda["labels"], gens
