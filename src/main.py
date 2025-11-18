@@ -40,6 +40,10 @@ def main(cfg: DictConfig):
         raise ValueError("mode must be trial|full")
 
     # Launch training subprocess ----------------------------------------------
+    # Set PYTHONPATH to project root to allow import of src module
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(project_root)
+
     cmd: List[str] = [
         sys.executable,
         "-u",
@@ -49,9 +53,9 @@ def main(cfg: DictConfig):
         f"mode={merged_cfg.mode}",
         f"results_dir={merged_cfg.results_dir}",
     ]
-    os.environ["HYDRA_PARENT_CONFIG_JSON"] = json.dumps(OmegaConf.to_container(merged_cfg, resolve=True))
+    env["HYDRA_PARENT_CONFIG_JSON"] = json.dumps(OmegaConf.to_container(merged_cfg, resolve=True))
     print("[main] Running:", " ".join(cmd), flush=True)
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, env=env)
 
 
 if __name__ == "__main__":
