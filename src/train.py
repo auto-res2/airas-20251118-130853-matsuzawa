@@ -6,6 +6,7 @@
 # --------------------------------------------------------------------------------------
 from __future__ import annotations
 
+import copy
 import json
 import os
 import time
@@ -475,7 +476,7 @@ def _optuna_objective(base_cfg: DictConfig):  # noqa: D401 – simple wrapper
     """Returns an Optuna objective *function* bound to `base_cfg`."""
 
     def _objective(trial: optuna.Trial):  # noqa: ANN001 – Optuna signature
-        cfg = OmegaConf.deepcopy(base_cfg)
+        cfg = copy.deepcopy(base_cfg)
         for name, space in cfg.optuna.search_space.items():
             if space["type"] == "loguniform":
                 val = trial.suggest_float(name, space["low"], space["high"], log=True)
