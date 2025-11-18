@@ -1,0 +1,79 @@
+run_id: comparative-1-iter1-Qwen3-0.6B-gsm8k
+method: BLAC                 # Budgeted Layer Agreement Controller (state-of-the-art baseline)
+seed: 42
+model:
+  name: Qwen/Qwen3-0.6B
+  revision: main
+  dtype: float16
+  gradient_checkpointing: true
+  context_length: 32768
+  params: 0.6B
+
+# ---------------------------------------------------------------------------
+dataset:
+  name: gsm8k
+  hf_subset: main
+  train_split: train
+  dev_split: test
+  max_seq_length: 512
+  preprocessing:
+    remove_commas: true
+    strip_whitespace: true
+  micro_dev_buffer:
+    size: 1024         # static buffer for BLAC (no refresh)
+
+# ---------------------------------------------------------------------------
+training:
+  epochs: 3
+  total_steps: 12000
+  train_batch_size: 64
+  eval_batch_size: 32
+  gradient_accumulation_steps: 1
+  base_learning_rate: 1.0e-4    # global LR before BLAC rescaling
+  lr_scheduler: cosine
+  warmup_steps: 500
+  weight_decay: 0.1
+  max_grad_norm: 1.0
+  optimizer:
+    name: AdamW
+    betas: [0.9, 0.95]
+  mixed_precision: bf16
+
+# ---------------------------------------------------------------------------
+controller:                  # BLAC hyper-parameters as in original paper
+  name: blac
+  K: 30                       # interval for agreement measurement
+  rho: 0.8                    # EMA decay for cosine agreement
+  U: 200                      # hard freeze duration when layer agreement ≤ 0
+  global_norm_budget: 1.0     # ℓ2-norm of update kept constant
+  epsilon: 1.0e-8
+
+# ---------------------------------------------------------------------------
+logging:
+  project: blac_gsm8k
+  entity: research
+  log_every_n_steps: 10
+  save_checkpoint_steps: 1000
+  keep_n_last_checkpoints: 3
+
+# ---------------------------------------------------------------------------
+optuna:
+  n_trials: 40
+  direction: maximize
+  search_space:
+    base_learning_rate:
+      type: loguniform
+      low: 5.0e-5
+      high: 3.0e-4
+    K:
+      type: categorical
+      choices: [20, 30, 40]
+    rho:
+      type: uniform
+      low: 0.7
+      high: 0.9
+    U:
+      type: int
+      low: 100
+      high: 300
+      step: 50

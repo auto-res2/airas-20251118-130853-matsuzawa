@@ -1,0 +1,95 @@
+run_id: proposed-iter1-Qwen3-0.6B-gsm8k
+method: HACBO
+seed: 42
+model:
+  name: Qwen/Qwen3-0.6B
+  revision: main
+  dtype: float16           # load in fp16
+  gradient_checkpointing: true
+  context_length: 32768
+  params: 0.6B
+
+# ---------------------------------------------------------------------------
+dataset:
+  name: gsm8k
+  hf_subset: main          # OpenAI "main" split
+  train_split: train
+  dev_split: test
+  max_seq_length: 512
+  preprocessing:
+    remove_commas: true
+    strip_whitespace: true
+  micro_dev_buffer:
+    size: 1024             # number of dev examples kept in memory
+    refresh_interval: 500  # steps between partial refreshes (R)
+    refresh_fraction: 0.25 # fraction replaced each refresh
+
+# ---------------------------------------------------------------------------
+training:
+  epochs: 3
+  total_steps: 12000            # ≈ train_size 7 473 × 3 ÷ (64) with rounding
+  train_batch_size: 64          # per-device, no accumulation (fits on A100-80G)
+  eval_batch_size: 32
+  gradient_accumulation_steps: 1
+  base_learning_rate: 1.0e-4    # will be rescaled by HACBO per sub-module
+  lr_scheduler: cosine
+  warmup_steps: 500
+  weight_decay: 0.1
+  max_grad_norm: 1.0
+  optimizer:
+    name: AdamW
+    betas: [0.9, 0.95]
+  mixed_precision: bf16
+
+# ---------------------------------------------------------------------------
+controller:                    # Hierarchical Agreement–Curvature Budgeted Optimiser
+  name: hacbo
+  trust_region_radius: 1.0     # held constant by the controller
+  K: 30                         # interval between measurements
+  rho: 0.8                      # EMA decay
+  theta_neg: 0.05              # agreement negativity threshold
+  F: 4                          # consecutive negatives before probation
+  gamma: 0.1                    # scale for int8 probation updates
+  refresh: 500                 # dev-buffer refresh period
+  epsilon_curvature: 1.0e-8
+  sub_modules: [attn_qkv, attn_out, mlp, ln]
+  curvature_metric: rms_grad_l2
+  fake_quant_precision: int8
+
+# ---------------------------------------------------------------------------
+logging:
+  project: hacbo_gsm8k
+  entity: research
+  log_every_n_steps: 10
+  save_checkpoint_steps: 1000
+  keep_n_last_checkpoints: 3
+
+# ---------------------------------------------------------------------------
+optuna:
+  n_trials: 50
+  direction: maximize      # maximise exact-match accuracy
+  search_space:
+    base_learning_rate:
+      type: loguniform
+      low: 5.0e-5
+      high: 3.0e-4
+    rho:
+      type: uniform
+      low: 0.7
+      high: 0.9
+    K:
+      type: categorical
+      choices: [20, 30, 40]
+    theta_neg:
+      type: uniform
+      low: 0.02
+      high: 0.08
+    F:
+      type: categorical
+      choices: [2, 4, 6]
+    gamma:
+      type: categorical
+      choices: [0.0, 0.1, 0.3]
+    refresh:
+      type: categorical
+      choices: [400, 500, 600]
