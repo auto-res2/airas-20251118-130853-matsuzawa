@@ -75,10 +75,11 @@ class _NVMLPowerLogger:
 class BaseController:  # pylint: disable=too-few-public-methods
     """Minimal API – subclasses implement *adaptive LR* logic in `on_update_end`."""
 
-    def __init__(self, cfg: DictConfig, model: torch.nn.Module, optim: torch.optim.Optimizer):
+    def __init__(self, cfg: DictConfig, model: torch.nn.Module, optim: torch.optim.Optimizer, device: torch.device = None):
         self.cfg = cfg
         self.model = model
         self.optim = optim
+        self.device = device if device is not None else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.step_idx = 0
 
     # ------------------------------------------------------------------
@@ -101,8 +102,9 @@ class BLAC(BaseController):
         layer_groups: List[List[int]],
         dev_loader: torch.utils.data.DataLoader,
         tokenizer,
+        device: torch.device = None,
     ):
-        super().__init__(cfg, model, optim)
+        super().__init__(cfg, model, optim, device)
         c = cfg.controller
         self.K: int = c.K
         self.rho: float = c.rho
@@ -112,8 +114,8 @@ class BLAC(BaseController):
         self.dev_loader = dev_loader
         self.tokenizer = tokenizer
 
-        self._freeze_cnt = torch.zeros(self.n_layers, dtype=torch.long, device="cuda")
-        self._cos_ema = torch.zeros(self.n_layers, device="cuda")
+        self._freeze_cnt = torch.zeros(self.n_layers, dtype=torch.long, device=self.device)
+        self._cos_ema = torch.zeros(self.n_layers, device=self.device)
         self._dev_iter = iter(self.dev_loader)
 
     # ------------------------------------------------------------------
@@ -123,7 +125,7 @@ class BLAC(BaseController):
         except StopIteration:
             self._dev_iter = iter(self.dev_loader)
             batch = next(self._dev_iter)
-        return {k: v.cuda(non_blocking=True) for k, v in batch.items()}
+        return {k: v.to(self.device, non_blocking=True) for k, v in batch.items()}
 
     # ------------------------------------------------------------------
     @torch.no_grad()
@@ -136,7 +138,7 @@ class BLAC(BaseController):
         for gi, pg in enumerate(self.optim.param_groups):
             grads = [p.grad for p in pg["params"] if p.grad is not None]
             dev_grads[gi] = (
-                torch.cat([g.float().flatten() for g in grads]) if grads else torch.zeros(1, device="cuda")
+                torch.cat([g.float().flatten() for g in grads]) if grads else torch.zeros(1, device=self.device)
             )
 
         # cosine per layer -------------------------------------------------------
@@ -146,7 +148,7 @@ class BLAC(BaseController):
             dg = torch.cat([dev_grads[g] for g in gids])
             cos = torch.dot(tg, dg) / (tg.norm() * dg.norm() + 1e-12)
             cos_list.append(cos.item())
-        self._cos_ema = self.rho * self._cos_ema + (1 - self.rho) * torch.tensor(cos_list, device="cuda")
+        self._cos_ema = self.rho * self._cos_ema + (1 - self.rho) * torch.tensor(cos_list, device=self.device)
 
     # ------------------------------------------------------------------
     @torch.no_grad()
@@ -187,8 +189,9 @@ class HACBO(BaseController):
         layer_groups: List[List[int]],
         dev_loader: torch.utils.data.DataLoader,
         tokenizer,
+        device: torch.device = None,
     ):
-        super().__init__(cfg, model, optim)
+        super().__init__(cfg, model, optim, device)
         c = cfg.controller
         self.K: int = c.K
         self.rho: float = c.rho
@@ -205,10 +208,10 @@ class HACBO(BaseController):
         self.tokenizer = tokenizer
 
         # State buffers ---------------------------------------------------------
-        self._agree_ema = torch.zeros(self.n_layers, device="cuda")
-        self._curv_ema: List[torch.Tensor] = [torch.zeros(len(g), device="cuda") for g in layer_groups]
-        self._neg_streak = torch.zeros(self.n_layers, dtype=torch.long, device="cuda")
-        self._probation = torch.zeros(self.n_layers, dtype=torch.bool, device="cuda")
+        self._agree_ema = torch.zeros(self.n_layers, device=self.device)
+        self._curv_ema: List[torch.Tensor] = [torch.zeros(len(g), device=self.device) for g in layer_groups]
+        self._neg_streak = torch.zeros(self.n_layers, dtype=torch.long, device=self.device)
+        self._probation = torch.zeros(self.n_layers, dtype=torch.bool, device=self.device)
 
     # ------------------------------------------------------------------
     def _next_dev_batch(self):
@@ -217,7 +220,7 @@ class HACBO(BaseController):
         except StopIteration:
             self._dev_iter = iter(self.dev_loader)
             batch = next(self._dev_iter)
-        return {k: v.cuda(non_blocking=True) for k, v in batch.items()}
+        return {k: v.to(self.device, non_blocking=True) for k, v in batch.items()}
 
     # ------------------------------------------------------------------
     @torch.no_grad()
@@ -227,7 +230,7 @@ class HACBO(BaseController):
             return
         new_examples, kept_examples = [], []
         for batch in self.dev_loader:
-            batch_cuda = {k: v.cuda(non_blocking=True) for k, v in batch.items()}
+            batch_cuda = {k: v.to(self.device, non_blocking=True) for k, v in batch.items()}
             gens = self.model.generate(
                 input_ids=batch_cuda["input_ids"],
                 attention_mask=batch_cuda["attention_mask"],
@@ -266,7 +269,7 @@ class HACBO(BaseController):
         for gi, pg in enumerate(self.optim.param_groups):
             grads = [p.grad for p in pg["params"] if p.grad is not None]
             dev_grads[gi] = (
-                torch.cat([g.float().flatten() for g in grads]) if grads else torch.zeros(1, device="cuda")
+                torch.cat([g.float().flatten() for g in grads]) if grads else torch.zeros(1, device=self.device)
             )
 
         # Agreement & curvature -------------------------------------------------
@@ -281,7 +284,7 @@ class HACBO(BaseController):
             for gid in gids:
                 curv = torch.sqrt((train_grads[gid] ** 2).mean() + 1e-8)
                 curv_list.append(curv.item())
-            curv_t = torch.tensor(curv_list, device="cuda")
+            curv_t = torch.tensor(curv_list, device=self.device)
             self._curv_ema[l_idx] = self.rho * self._curv_ema[l_idx] + (1 - self.rho) * curv_t
 
     # ------------------------------------------------------------------
@@ -331,21 +334,25 @@ def _single_run(cfg: DictConfig) -> float:
     """Executes ONE full training run.  Returns *dev EM* for Optuna."""
     _set_seed(cfg.seed)
 
+    # Detect device (CPU or CUDA)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     model, tokenizer, optim, layer_groups = build_model_and_optim(cfg)
+    model = model.to(device)
     dm = GSM8KDataModule(cfg, tokenizer)
 
     # Controller ----------------------------------------------------------------
     name = cfg.controller.name.lower()
     if name == "blac":
         controller: BaseController = BLAC(
-            cfg, model, optim, layer_groups, dm.dev_loader, tokenizer
+            cfg, model, optim, layer_groups, dm.dev_loader, tokenizer, device
         )
     elif name == "hacbo":
         controller = HACBO(
-            cfg, model, optim, layer_groups, dm.dev_loader, tokenizer
+            cfg, model, optim, layer_groups, dm.dev_loader, tokenizer, device
         )
     else:
-        controller = BaseController(cfg, model, optim)
+        controller = BaseController(cfg, model, optim, device)
 
     # Scheduler -----------------------------------------------------------------
     scheduler = get_cosine_schedule_with_warmup(
@@ -377,7 +384,7 @@ def _single_run(cfg: DictConfig) -> float:
     global_step = 0
     for epoch in range(cfg.training.epochs):
         for batch in dm.train_loader:
-            batch = {k: v.cuda(non_blocking=True) for k, v in batch.items()}
+            batch = {k: v.to(device, non_blocking=True) for k, v in batch.items()}
             with autocast(enabled=cfg.training.mixed_precision.lower() in {"fp16", "bf16"}):
                 loss = model(**batch).loss / grad_accum
             scaler.scale(loss).backward()
@@ -388,7 +395,7 @@ def _single_run(cfg: DictConfig) -> float:
                 for gi, pg in enumerate(optim.param_groups):
                     grads = [p.grad for p in pg["params"] if p.grad is not None]
                     train_grads[gi] = (
-                        torch.cat([g.float().flatten() for g in grads]) if grads else torch.zeros(1, device="cuda")
+                        torch.cat([g.float().flatten() for g in grads]) if grads else torch.zeros(1, device=device)
                     )
 
                 controller.on_update_end(train_grads)
@@ -421,7 +428,7 @@ def _single_run(cfg: DictConfig) -> float:
     correct, total = 0, 0
     with torch.no_grad():
         for batch in dm.dev_loader:
-            batch_cuda = {k: v.cuda(non_blocking=True) for k, v in batch.items()}
+            batch_cuda = {k: v.to(device, non_blocking=True) for k, v in batch.items()}
             gens = model.generate(
                 input_ids=batch_cuda["input_ids"],
                 attention_mask=batch_cuda["attention_mask"],
