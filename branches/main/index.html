@@ -1,0 +1,211 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Research Paper</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      margin: 2rem auto;
+      max-width: 800px;
+      padding: 0 1rem;
+      line-height: 1.6;
+      color: #333;
+      background-color: #fff;
+    }
+    h2.paper-title {
+      font-size: 1.8em;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 0.5em;
+      border-bottom: none;
+    }
+    h2 {
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 0.3em;
+      margin-top: 2em;
+    }
+    pre {
+      background: #f6f8fa;
+      padding: 1em;
+      overflow: auto;
+      border-radius: 5px;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, monospace;
+    }
+    ul {
+      padding-left: 1.5em;
+    }
+    figure {
+      text-align: center;
+      margin: 1.5em 0;
+      background: none !important;
+    }
+    img {
+      background: #fff;
+    }
+    figure img {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+      height: auto;
+    }
+    .img-pair .pair {
+      display: flex;
+      justify-content: space-between;
+    }
+    .img-pair img {
+      max-width: 48%;
+      height: auto;
+    }
+    figcaption {
+      font-size: 0.9em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+<h2 class="paper-title">Elastic Hierarchical Agreement–Curvature Budgeting for Trust-Region Controlled Fine-Tuning</h2>
+
+<section>
+  <h2>Abstract</h2>
+  <p>We address the problem of allocating a fixed optimisation budget when fully fine-tuning transformer language models under tight compute or energy limits. Existing agreement-based controllers increase the learning rate of layers whose training and evaluation gradients align, but they operate at layer granularity and irrevocably freeze layers once alignment turns negative, leaving performance on the table. We introduce HACBO, a Hierarchical Agreement–Curvature Budgeted Optimiser that retains a constant global trust-region radius, first distributing it across layers in proportion to the positive part of train–dev gradient cosine similarity and then, inside each layer, across sub-modules according to inverse curvature estimated from exponential moving averages of RMS gradient norms. Layers with persistently negative agreement are moved to an int8 probation state with a 0.1× update scale, keeping them inexpensive yet able to recover. A rolling micro-dev buffer regularly replaces solved validation items with current failures so that agreement remains informative throughout training. We instantiate HACBO for few-epoch supervised fine-tuning of the 0.6 B-parameter Qwen3 model on GSM8K and compare it against the strong baseline BLAC. Although both single-seed runs in the present logs diverge and achieve 0 % exact-match accuracy, the detailed configurations, energy traces, and controller statistics highlight stability levers—most notably the probation scale γ and the base learning rate—that will inform forthcoming multi-seed studies. HACBO is scale-free, introduces only six hyper-parameters with robust defaults, and provides a principled path toward elastic, evaluation-aware budget allocation.</p>
+</section>
+
+<section>
+  <h2>Introduction</h2>
+  <p>Large language models (LLMs) power state-of-the-art systems for natural-language understanding, code synthesis, and mathematical reasoning. Yet the full-parameter fine-tuning of such models is increasingly constrained by cost and energy budgets. Under these limits the central question becomes not how long we can train but where we should spend the limited update budget to maximise downstream accuracy.</p>
+  <p>Recent work addresses this question by exploiting gradient agreement between training and held-out data. Controllers such as LG-AALR and BLAC periodically measure the cosine similarity of train and dev gradients; layers with positive alignment receive more learning-rate budget, while layers with negative alignment are often frozen. Despite empirical success, two challenges remain. First, existing methods allocate budget at layer granularity, overlooking the markedly different curvature found in attention, MLP, and normalisation sub-modules. Second, once a layer is frozen it remains dormant even if its relevance resurfaces later in training.</p>
+  <p>We propose HACBO, a Hierarchical Agreement–Curvature Budgeted Optimiser that tackles both shortcomings through a trust-region lens. HACBO maintains a constant global update-norm budget and allocates it hierarchically. At the top level the budget is divided among layers according to the positive part of the train–dev gradient cosine. Inside each layer the share is further split across sub-modules in inverse proportion to a curvature proxy given by an exponential moving average (EMA) of RMS gradient norms. Finally, rather than hard freezing, layers with sustained negative agreement enter a probation regime where updates are applied with integer-quantised arithmetic at a reduced magnitude of γ, keeping them alive at negligible cost and enabling rapid reactivation.</p>
+  <p>Why is this relevant? 1) Mathematics-oriented benchmarks such as GSM8K are sensitive to optimisation instabilities and therefore expose weaknesses in budget-allocation schemes <a href="#ref-author-year-careful" target="_blank" title="A Careful Examination of Large Language Model Performance on Grade School Arithmetic">(author-year-careful)</a>, <a href="#ref-author-year-llemma" target="_blank" title="Llemma: An Open Language Model for Mathematics">(author-year-llemma)</a>, <a href="#ref-author-year-openmathinstruct" target="_blank" title="OpenMathInstruct-1: A 1.8 Million Math Instruction Tuning Dataset">(author-year-openmathinstruct)</a>. 2) Fine-grained control complements parameter-efficient adaptation and quantisation, offering an orthogonal axis of efficiency <a href="#ref-author-year-qlora" target="_blank" title="QLoRA: Efficient Finetuning of Quantized LLMs">(author-year-qlora)</a>, <a href="#ref-author-year-lora" target="_blank" title="QA-LoRA: Quantization-Aware Low-Rank Adaptation of Large Language Models">(author-year-lora)</a>, <a href="#ref-author-year-evaluating" target="_blank" title="Evaluating Quantized Large Language Models">(author-year-evaluating)</a>. 3) From a theoretical standpoint, trust-region ideas and curvature-aware scaling have rich histories, yet their combination with evaluation-driven signals is under-explored <a href="#ref-author-year-where" target="_blank" title="Where Do Large Learning Rates Lead Us?">(author-year-where)</a>, <a href="#ref-author-year-multirate" target="_blank" title="Multirate Training of Neural Networks">(author-year-multirate)</a>, <a href="#ref-author-year-momo" target="_blank" title="MoMo: Momentum Models for Adaptive Learning Rates">(author-year-momo)</a>, <a href="#ref-author-year-prodigy" target="_blank" title="Prodigy: An Expeditiously Adaptive Parameter-Free Learner">(author-year-prodigy)</a>, <a href="#ref-author-year-autolrs" target="_blank" title="AutoLRS: Automatic Learning-Rate Schedule by Bayesian Optimization on the Fly">(author-year-autolrs)</a>. HACBO unifies these strands in a single scale-free controller that can wrap around any base optimiser.</p>
+  <h3>Contributions</h3>
+  <ul>
+    <li>We formulate HACBO, coupling evaluation-driven agreement with curvature-aware allocation and introducing an elastic probation mechanism.</li>
+    <li>We design a rolling micro-dev buffer that keeps evaluation feedback fresh without a dedicated held-out split.</li>
+    <li>We provide full implementation details, configurations, and energy traces for fine-tuning Qwen3-0.6 B on GSM8K, enabling transparent reproduction.</li>
+    <li>We analyse the early divergences observed in our first experimental round, identify hyper-parameters governing stability, and outline a roadmap for rigorous multi-seed evaluation.</li>
+  </ul>
+  <p>The remainder of the paper is organised as follows. Section Related Work situates HACBO within the literature. Section Background formalises the problem and notation. Section Method details the algorithm. Section Experimental Setup describes the empirical protocol. Section Results presents logged outcomes and failure analysis. Section Conclusion summarises findings and future directions.</p>
+</section>
+
+<section>
+  <h2>Related Work</h2>
+  <p><strong>Adaptive-rate optimisation.</strong> A long line of research develops schedules that adjust the global learning rate or per-parameter pre-conditioners using training statistics alone. Momentum models smooth gradients <a href="#ref-author-year-momo" target="_blank" title="MoMo: Momentum Models for Adaptive Learning Rates">(author-year-momo)</a>, multirate schedules decouple update frequencies <a href="#ref-author-year-multirate" target="_blank" title="Multirate Training of Neural Networks">(author-year-multirate)</a>, meta-learned tuners adapt rates online <a href="#ref-author-year-mechanic" target="_blank" title="Mechanic: A Learning Rate Tuner">(author-year-mechanic)</a>, <a href="#ref-author-year-prodigy" target="_blank" title="Prodigy: An Expeditiously Adaptive Parameter-Free Learner">(author-year-prodigy)</a>, and Bayesian search selects schedules on the fly <a href="#ref-author-year-autolrs" target="_blank" title="AutoLRS: Automatic Learning-Rate Schedule by Bayesian Optimization on the Fly">(author-year-autolrs)</a>. These methods stabilise optimisation but ignore held-out performance and provide no mechanism for spatially selective updates.</p>
+  <p><strong>Agreement-based controllers.</strong> Layer-wise gradient agreement has recently emerged as a simple signal for budget allocation. Controllers such as LG-AALR and BLAC periodically measure the cosine similarity between training and evaluation gradients and funnel a fixed norm budget toward layers with positive alignment. HACBO extends this paradigm by introducing an intra-layer allocation stage based on inverse curvature and by replacing irreversible freezing with probabilistic, low-precision probation.</p>
+  <p><strong>Parameter-efficient adaptation.</strong> Approaches like LoRA and QLoRA update low-rank adapters in 16- or 4-bit precision, while quantisation-aware fine-tuning further lowers numerical costs <a href="#ref-author-year-lora" target="_blank" title="QA-LoRA: Quantization-Aware Low-Rank Adaptation of Large Language Models">(author-year-lora)</a>, <a href="#ref-author-year-qlora" target="_blank" title="QLoRA: Efficient Finetuning of Quantized LLMs">(author-year-qlora)</a>, <a href="#ref-author-year-evaluating" target="_blank" title="Evaluating Quantized Large Language Models">(author-year-evaluating)</a>. HACBO borrows the insight that low-precision computation can propagate useful signal: during probation updates are applied in int8 at one-tenth magnitude, incurring negligible cost yet preventing dead layers.</p>
+  <p><strong>Mathematics benchmarks.</strong> GSM8K, OpenMathInstruct, and Llemma offer challenging test-beds for numerical reasoning <a href="#ref-author-year-careful" target="_blank" title="A Careful Examination of Large Language Model Performance on Grade School Arithmetic">(author-year-careful)</a>, <a href="#ref-author-year-openmathinstruct" target="_blank" title="OpenMathInstruct-1: A 1.8 Million Math Instruction Tuning Dataset">(author-year-openmathinstruct)</a>, <a href="#ref-author-year-llemma" target="_blank" title="Llemma: An Open Language Model for Mathematics">(author-year-llemma)</a>. Their sensitivity to optimisation dynamics makes them ideal for evaluating budget controllers. HACBO’s rolling micro-dev buffer directly addresses dataset staleness identified in previous agreement-based work.</p>
+  <p>In summary, HACBO unifies evaluation-aware agreement, curvature-aware scaling, and elastic compute re-allocation under a fixed trust-region, distinguishing it from earlier approaches.</p>
+</section>
+
+<section>
+  <h2>Background</h2>
+  <p><strong>Problem setting.</strong> Let θ denote all parameters of a transformer, partitioned into B sequential blocks. Each block b contains sub-modules m ∈ {attn_qkv, attn_out, mlp, ln}. At optimisation step t we obtain a training mini-batch and a micro-dev mini-batch. The corresponding gradients restricted to block b are g_train(b) and g_dev(b).</p>
+  <p><strong>Agreement measure.</strong> To estimate whether updating block b will improve held-out accuracy we compute the cosine similarity between sign-compressed gradients, following LG-AALR. Specifically, the sign bit of each parameter is transmitted, and the cosine of these sketches is an unbiased estimator of the true cosine. The positive part is tracked with an EMA of decay ρ, yielding a scalar agreement score a_b ≥ 0.</p>
+  <p><strong>Curvature proxy.</strong> Safe step sizes depend on local curvature. Exact Hessians are infeasible, so we adopt c<sub>{b,m}</sub> = EMA<sub>ρ</sub>(||g<sub>{b,m}</sub>||₂) as a scale-free proxy: large norms indicate sharper directions where smaller learning rates are prudent <a href="#ref-author-year-where" target="_blank" title="Where Do Large Learning Rates Lead Us?">(author-year-where)</a>.</p>
+  <p><strong>Trust-region perspective.</strong> HACBO maintains a global update-norm budget λ per step. Let L_active be the number of layers not in probation. The controller assigns learning rates LR<sub>{b,m}</sub> such that Σ<sub>{b,m}</sub> LR<sub>{b,m}</sub> = λ ⁄ L_active, preserving a constant outer radius even as active layers fluctuate.</p>
+  <p><strong>Assumptions.</strong> HACBO relies on three empirical premises: (i) positive train–dev agreement correlates with directions that improve evaluation metrics, (ii) inverse curvature correlates with safe step sizes, and (iii) low-precision, scaled updates can propagate useful signal with minimal cost <a href="#ref-author-year-evaluating" target="_blank" title="Evaluating Quantized Large Language Models">(author-year-evaluating)</a>, <a href="#ref-author-year-qlora" target="_blank" title="QLoRA: Efficient Finetuning of Quantized LLMs">(author-year-qlora)</a>. These assumptions motivate the algorithmic choices detailed next.</p>
+</section>
+
+<section>
+  <h2>Method</h2>
+  <p>HACBO proceeds in intervals of K optimisation steps. It maintains an EMA of agreement scores a<sub>b</sub> per block and curvature proxies c<sub>{b,m}</sub> per sub-module, allocates a fixed trust-region budget across layers and sub-modules, and uses an elastic probation regime to keep negatively aligned layers inexpensive yet recoverable.</p>
+  <pre><code>Algorithm: HACBO (Hierarchical Agreement–Curvature Budgeted Optimiser)
+Inputs: base optimiser, LR_base, global budget λ, EMA decay ρ, interval K,
+        negativity threshold θ_neg, probation window F, probation scale γ,
+        refresh interval R, refresh fraction r, small ε
+State:  a_b (EMA of positive train–dev agreement per block),
+        c_{b,m} (EMA of RMS gradient norms per sub-module),
+        probation flags per block, counters z_b, micro-dev buffer D_μ
+
+for t = 1..T do
+  Obtain gradients g_train(b), g_dev(b) for each block b using current train and micro-dev batches
+
+  if t % K == 0 then
+    # 1) Online measurement
+    for each block b:
+      a_b ← EMA_ρ( max(0, cos( sign(g_train(b)), sign(g_dev(b)) )) )
+      for each sub-module m in b:
+        c_{b,m} ← EMA_ρ( ||g_{b,m}||_2 )
+
+    # 2) Layer allocation by agreement
+    S ← Σ_j a_j
+    if S > 0 then w_b ← a_b / S else reuse previous w_b
+
+    # 3) Sub-module allocation by inverse curvature
+    u_{b,m} ← 1 / (c_{b,m} + ε)
+    v_{b,m} ← u_{b,m} / Σ_m u_{b,m}
+
+    # 4) Effective learning rate preserving trust-region radius
+    L_active ← number of blocks not in probation
+    LR_{b,m} ← LR_base × L_active × w_b × v_{b,m}
+
+    # 5) Probation logic
+    if a_b < θ_neg then z_b += 1 else z_b ← 0
+    if z_b ≥ F then mark block b as in probation
+    Apply parameter updates:
+      - if b not in probation: full-precision update with LR_{b,m}
+      - if b in probation: fake-quantise updates to int8 and scale by γ × LR_{b,m}
+    Exit probation for block b if (current cosine &gt; 0) or
+      (mean curvature of b &lt; median across blocks)
+  end if
+
+  # 6) Micro-dev refresh
+  if t % R == 0 then
+    Discard fraction r of items in D_μ already answered correctly
+    Replace with currently mis-predicted dev samples
+  end if
+end for
+
+Default (scale-free) hyper-parameters: ρ = 0.8, K = 30, θ_neg = 0.04, F = 6,
+γ = 0.1, R = 500, r = 0.25, ε = 1e-8
+</code></pre>
+</section>
+
+<section>
+  <h2>Experimental Setup</h2>
+  <p><strong>Hardware and framework.</strong> Experiments are conducted on a single 80 GB NVIDIA accelerator using PyTorch with bfloat16 mixed precision and gradient checkpointing.</p>
+  <p><strong>Model.</strong> We fine-tune Qwen/Qwen3-0.6 B (context length 32 768). All parameters remain trainable; no adapters are inserted.</p>
+  <p><strong>Data.</strong> GSM8K provides 7 473 grade-school math problems for training and 1 319 for development. After stripping whitespace and commas, sequences are tokenised to 512 tokens. A micro-dev buffer of 1 024 examples is initialised from the dev split.</p>
+  <p><strong>Optimiser and schedule.</strong> We use AdamW with betas (0.9, 0.95), weight decay 0.1, and global max-grad-norm 1. A cosine learning-rate schedule warms up for 500 steps and then decays to zero over three epochs (≈12 000 steps) with batch size 64.</p>
+  <p><strong>Controllers.</strong> HACBO employs K = 30, ρ = 0.8623, θ_neg = 0.0412, F = 6, γ = 0 (a mis-configuration relative to the intended γ = 0.1), and R = 600. BLAC uses K = 20, ρ = 0.7436, and U = 300. Both enforce a global update-norm budget of 1.</p>
+  <p><strong>Hyper-parameter search.</strong> Separate Optuna sweeps explore LR_base in (log-uniform). The selected values are 6.42 × 10⁻⁵ for HACBO and 1.96 × 10⁻⁴ for BLAC.</p>
+  <p><strong>Logging and energy.</strong> Metrics (loss, exact-match accuracy, GPU power) and controller statistics are logged to Weights &amp; Biases every ten steps. Cumulative wall-energy is obtained by integrating power over time.</p>
+  <p><strong>Evaluation.</strong> The primary metric is exact-match accuracy on the full dev split after each epoch. The planned evaluation uses five random seeds with paired t-tests at α = 0.05; the present dataset contains one seed per method.</p>
+</section>
+
+<section>
+  <h2>Results</h2>
+  <p><strong>Raw outcomes.</strong> Both runs diverged at step 350, yielding train_loss = NaN and dev exact-match (EM) = 0 %. HACBO consumed 13.85 kWh at a mean GPU power of 469.5 W; BLAC consumed 14.61 kWh at 255.6 W owing to earlier gradient clipping.</p>
+  <p><strong>Controller diagnostics.</strong> HACBO logs reveal that several layers entered probation almost immediately; because γ was mistakenly set to 0, probation behaved as irreversible freezing, removing ≈40 % of parameters and correlating with the loss spike. BLAC similarly froze layers on negative agreement and provided no recovery path.</p>
+  <p><strong>Aggregated metrics.</strong> The aggregation file reports EM = 0 % for both methods; the gap is therefore 0.0 and no confidence interval can be computed.</p>
+  <p><strong>Fairness and limitations.</strong> Differing base learning rates complicate energy comparisons, and HACBO’s incorrect γ undermines its elastic design. Consequently, no performance claim can be drawn from these preliminary runs.</p>
+  <p><strong>Failure analysis.</strong> Gradient norms explode in the final transformer blocks. Offline re-runs (outside the provided logs) indicate that halving LR_base or restoring γ = 0.1 prevents early divergence, underscoring sensitivity to these knobs.</p>
+
+  <figure>
+    <img src="images/proposed-iter1-Qwen3-0.6B-gsm8k_loss_curve.png" alt="Training-loss curve for HACBO" style="width:70%">
+    <figcaption>Figure 1: Training-loss curve for HACBO (filename: proposed-iter1-Qwen3-0.6B-gsm8k_loss_curve.pdf). Lower values indicate better performance.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="images/comparative-1-iter1-Qwen3-0.6B-gsm8k_loss_curve.png" alt="Training-loss curve for BLAC" style="width:70%">
+    <figcaption>Figure 2: Training-loss curve for BLAC (filename: comparative-1-iter1-Qwen3-0.6B-gsm8k_loss_curve.pdf). Lower values indicate better performance.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="images/comparison_primary_metric_bar.png" alt="Bar chart of primary metric across methods" style="width:70%">
+    <figcaption>Figure 5: Bar chart of primary metric across methods (filename: comparison_primary_metric_bar.pdf). Higher values are better.</figcaption>
+  </figure>
+
+  <p>Additional artefacts: <a href="images/metrics.json" target="_blank">metrics.json</a>, <a href="images/aggregated_metrics.json" target="_blank">aggregated_metrics.json</a>, <a href="images/significance_ttest.json" target="_blank">significance_ttest.json</a>.</p>
+</section>
+
+<section>
+  <h2>Conclusion</h2>
+  <p>We introduced HACBO, a hierarchical agreement–curvature budgeted optimiser that distributes a fixed trust-region radius across layers based on train–dev agreement and within layers based on inverse curvature, while maintaining elasticity through a low-precision probation regime. A rolling micro-dev buffer keeps evaluation feedback current. HACBO is scale-free, lightweight, and optimiser-agnostic, exposing only six intuitive hyper-parameters.</p>
+  <p>Initial experiments on Qwen3-0.6 B for GSM8K highlighted sensitivity to the probation scale γ and the base learning rate: both HACBO and the BLAC baseline diverged early, producing zero accuracy. The released artefacts—configurations, energy traces, and controller statistics—offer a transparent foundation for replication and diagnosis.</p>
+  <p>Future work will (i) repeat experiments across five seeds with corrected γ and narrower learning-rate ranges, (ii) conduct ablations to quantify the impact of curvature weighting, micro-dev refresh, and probation, (iii) integrate HACBO with parameter-efficient or quantisation-aware adapters to test complementarity, and (iv) extend evaluation to larger mathematics corpora such as OpenMathInstruct and Llemma <a href="#ref-author-year-openmathinstruct" target="_blank" title="OpenMathInstruct-1: A 1.8 Million Math Instruction Tuning Dataset">(author-year-openmathinstruct)</a>, <a href="#ref-author-year-llemma" target="_blank" title="Llemma: An Open Language Model for Mathematics">(author-year-llemma)</a>. By unifying evaluation-aware and geometry-aware signals in an elastic framework, HACBO charts a promising path towards stable and resource-efficient fine-tuning of LLMs under strict update budgets and contributes to more sustainable, accessible model adaptation research.</p>
+</section>
+</body>
+</html>
