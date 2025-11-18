@@ -24,3 +24,11 @@
 === [UV SYNC] Finished successfully at Tue Nov 18 03:43:33 PM UTC 2025 ===
 === [FULL EXPERIMENT] Start for comparative-1-iter1-Qwen3-0.6B-gsm8k at Tue Nov 18 03:43:33 PM UTC 2025 ===
 [main] Running: /home/toma/pt80-1-a-29/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/bin/python3 -u -m src.train run=comparative-1-iter1-Qwen3-0.6B-gsm8k mode=full results_dir=.research/iteration1
+=== [UV SYNC] Start at Tue Nov 18 03:46:39 PM UTC 2025 ===
+=== [UV SYNC] Finished successfully at Tue Nov 18 03:46:44 PM UTC 2025 ===
+=== [FULL EXPERIMENT] Start for comparative-1-iter1-Qwen3-0.6B-gsm8k at Tue Nov 18 03:46:44 PM UTC 2025 ===
+[main] Running: /home/toma/pt80-1-a-29/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/bin/python3 -u -m src.train run=comparative-1-iter1-Qwen3-0.6B-gsm8k mode=full results_dir=.research/iteration1
+[Optuna] best params: {'base_learning_rate': 0.00019617073732456876, 'K': 20, 'rho': 0.743609023175802, 'U': 300}
+[WandB] URL: https://wandb.ai/gengaru617-personal/2025-11-18-2/runs/comparative-1-iter1-Qwen3-0.6B-gsm8k
+[train.py] final dev EM: 0.0000
+=== [FULL EXPERIMENT] PASSED for comparative-1-iter1-Qwen3-0.6B-gsm8k at Tue Nov 18 06:27:17 PM UTC 2025 ===
