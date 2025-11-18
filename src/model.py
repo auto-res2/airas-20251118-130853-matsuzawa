@@ -53,6 +53,7 @@ def build_model_and_optim(cfg: DictConfig):
     layers = _find_transformer_layers(model)
     for block in layers:  # type: ignore[operator]
         current: List[int] = []
+        covered_in_block = set()
         # Separate logical sub-modules: attn + mlp + ln ------------------------
         for mod_name in ["attn", "attention", "self_attn"]:
             if hasattr(block, mod_name):
@@ -60,13 +61,15 @@ def build_model_and_optim(cfg: DictConfig):
                 if params:
                     param_groups.append({"params": params, "lr": cfg.training.base_learning_rate})
                     current.append(len(param_groups) - 1)
+                    covered_in_block.update(params)
         for mod_name in ["mlp", "ffn", "feed_forward"]:
             if hasattr(block, mod_name):
                 params = list(getattr(block, mod_name).parameters())
                 if params:
                     param_groups.append({"params": params, "lr": cfg.training.base_learning_rate})
                     current.append(len(param_groups) - 1)
-        ln_params = [p for n, p in block.named_parameters() if "norm" in n or "ln" in n]
+                    covered_in_block.update(params)
+        ln_params = [p for n, p in block.named_parameters() if ("norm" in n or "ln" in n) and p not in covered_in_block]
         if ln_params:
             param_groups.append({"params": ln_params, "lr": cfg.training.base_learning_rate})
             current.append(len(param_groups) - 1)
