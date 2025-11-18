@@ -234,7 +234,86 @@
     "iterations": [
       {
         "iteration_id": 1,
-        "method": "Hierarchical Agreement-Curvature Budgeted Optimiser (HACBO)\nOverview: keep a *global trust-region radius* constant, distribute it first across layers by train–dev agreement, then across sub-modules (attn-QKV / MLP / LayerNorm) by a curvature proxy (RMS grad).  Layers with persistently negative agreement enter a *probation* state where they are updated with very low precision instead of being fully frozen; they can regain budget as soon as either agreement turns positive or curvature drops, enabling elastic recovery.\nComponents:\n1.  Online measures every K=30 steps\n    • Agreement  a_b  := EMA_ρ(max(cos_b,0))  (ρ=0.8) using the same 1-bit sign sketch as LG-AALR.\n    • Curvature  c_{b,m} := EMA_ρ(‖g_{b,m}‖_2) for each sub-module m within block b.\n2.  Layer weights  w_b = a_b / Σ_j a_j  (if Σa=0 keep previous).\n3.  Sub-module weights inside layer b:  v_{b,m} = 1 / (c_{b,m}+ε);  normalise s.t.  Σ_m v_{b,m}=1.\n4.  Learning rate per sub-module:  LR_{b,m} = LR_base · L · w_b · v_{b,m}  where L is the number of *active* layers.\n5.  Probation mechanism\n    • If a_b < θ_neg for F consecutive intervals, set status=‘probation’.\n    • In probation the sub-module update is quantised to int8 (via torch.compiler.fake_quant) and scaled by γ=0.1 instead of 0.  This costs <1 % extra memory but keeps the layer \"alive\".\n    • Exit probation immediately once cos_b>0 or c̄_b < median curvature of all blocks (layer has become flat).\n6.  Dynamic micro-dev refresh: every R=500 steps replace 25 % of the buffer with the *current* dev examples where the model’s answer is wrong.  This keeps gradient signal focused on unsolved items without an additional held-out split.\nTotal hyper-parameters: ρ, K, θ_neg, F, γ, R – all scale-free with robust defaults."
+        "method": "Hierarchical Agreement-Curvature Budgeted Optimiser (HACBO)\nOverview: keep a *global trust-region radius* constant, distribute it first across layers by train–dev agreement, then across sub-modules (attn-QKV / MLP / LayerNorm) by a curvature proxy (RMS grad).  Layers with persistently negative agreement enter a *probation* state where they are updated with very low precision instead of being fully frozen; they can regain budget as soon as either agreement turns positive or curvature drops, enabling elastic recovery.\nComponents:\n1.  Online measures every K=30 steps\n    • Agreement  a_b  := EMA_ρ(max(cos_b,0))  (ρ=0.8) using the same 1-bit sign sketch as LG-AALR.\n    • Curvature  c_{b,m} := EMA_ρ(‖g_{b,m}‖_2) for each sub-module m within block b.\n2.  Layer weights  w_b = a_b / Σ_j a_j  (if Σa=0 keep previous).\n3.  Sub-module weights inside layer b:  v_{b,m} = 1 / (c_{b,m}+ε);  normalise s.t.  Σ_m v_{b,m}=1.\n4.  Learning rate per sub-module:  LR_{b,m} = LR_base · L · w_b · v_{b,m}  where L is the number of *active* layers.\n5.  Probation mechanism\n    • If a_b < θ_neg for F consecutive intervals, set status=‘probation’.\n    • In probation the sub-module update is quantised to int8 (via torch.compiler.fake_quant) and scaled by γ=0.1 instead of 0.  This costs <1 % extra memory but keeps the layer \"alive\".\n    • Exit probation immediately once cos_b>0 or c̄_b < median curvature of all blocks (layer has become flat).\n6.  Dynamic micro-dev refresh: every R=500 steps replace 25 % of the buffer with the *current* dev examples where the model’s answer is wrong.  This keeps gradient signal focused on unsolved items without an additional held-out split.\nTotal hyper-parameters: ρ, K, θ_neg, F, γ, R – all scale-free with robust defaults.",
+        "experimental_design": {
+          "experiment_summary": "Task: Few-epoch supervised fine-tuning of the 0.6 B-parameter Qwen3 language model on the GSM8K math-word-problem training split and evaluating generalisation on the GSM8K dev split.\nGoal: demonstrate that the new optimiser HACBO yields higher mathematical exact-match accuracy and better resource utilisation than the state-of-the-art agreement controller BLAC.\nWorkflow:\n1. Load Qwen3-0.6B with 16-bit weights onto a single A100/H200 (80 GB).\n2. Prepare data loaders for GSM8K train (7 473 items) and a rolling micro-dev buffer drawn from GSM8K dev (1 319 items).\n3. Run four training runs per seed but we will concentrate on the HACBO vs. BLAC comparison. HACBO maintains a constant global trust-region radius and redistributes the effective learning rate budget online:\n   • Every K=30 updates compute per-layer train-vs-dev gradient cosine agreement (1-bit sign sketch) and per-sub-module curvature (EMA of RMS grad).\n   • Convert agreement to layer weights w_b (positive part, normalised).\n   • Convert curvature to inverse-curvature sub-module weights v_{b,m}, again normalised.\n   • Effective LR for each parameter group = LR_base · L_active · w_b · v_{b,m}.\n   • Layers with negative agreement for F consecutive measurements enter an int8 “probation” state: their updates are applied with 0.1× magnitude but are not frozen, allowing elastic recovery.\n   • The micro-dev buffer is refreshed every R=500 steps by replacing 25 % of examples that are already solved with currently mis-predicted dev items.\n4. Track metrics online (accuracy, energy, update statistics) and log to WandB.\n5. After 3 training epochs (~12 k steps with batch_size=64, sequence_length=512) evaluate EM on the full dev set.\n6. Repeat with 5 random seeds and perform a paired t-test (α = 0.05) between BLAC and HACBO EM scores.",
+          "evaluation_metrics": [
+            {
+              "name": "Exact-Match accuracy on GSM8K dev split",
+              "description": "Correctness criterion: a prediction is correct if, after stripping whitespace, currency symbols, and comma separators, the leading numerical token (integer or decimal) exactly matches the ground-truth numerical answer.\nCalculation: EM = ( number_of_correct_answers / 1 319 ) × 100 %.\nAppropriateness: GSM8K answers are single numbers, so exact match directly reflects full problem-solving success without partial credit.\nVisualisations: 1) bar plot of EM per training method, 2) learning curve of EM versus training step."
+            },
+            {
+              "name": "Wall-energy (kWh)",
+              "description": "Correctness: lower is better. Accumulated GPU wall-plug power draw integrated over the whole run.\nCalculation:  Σ_i  (power_W_i × Δt_i) / 3600 . Power is polled every second via nvidia-smi.\nAppropriateness: reflects ecological and monetary cost of the training procedure.\nVisualisations: stacked area showing cumulative kWh over time for each method."
+            },
+            {
+              "name": "Update-norm variance",
+              "description": "Correctness: lower variance indicates more stable optimisation.\nCalculation: For each training step compute global update norm ||Δθ||₂, then report Var(||Δθ||₂) across all steps.\nAppropriateness: agreement-based controllers aim to stabilise step sizes; variance directly measures this quality.\nVisualisations: histogram of ||Δθ||₂ and line chart of running variance."
+            },
+            {
+              "name": "Dev-agreement entropy",
+              "description": "Correctness: higher entropy (up to log L) means budget is spread across layers; very low entropy indicates pathological focus on few layers.\nCalculation: For each measurement interval compute p_b = a_b / Σ_j a_j, then H = −Σ_b p_b log p_b; report mean H.\nAppropriateness: quantifies how evenly HACBO/BLAC distribute trust-region budget.\nVisualisations: entropy over time curve."
+            },
+            {
+              "name": "Mean fraction of layers in probation",
+              "description": "Correctness: monitors elasticity. Lower steady-state fraction implies layers promptly recover; extremely high fraction would signal over-zealous suppression.\nCalculation: (#layers_in_probation averaged over steps) / total_layers.\nAppropriateness: unique to HACBO feature; helps analyse trade-off between pruning and adaptability.\nVisualisations: heat map of layer status across time."
+            }
+          ],
+          "proposed_method": "Hierarchical Agreement-Curvature Budgeted Optimiser (HACBO)\nObjective: maximise generalisation with a fixed global trust-region by dynamically allocating update magnitude down to the sub-module level using both agreement and curvature signals, while keeping misbehaving layers alive through low-precision probation.\nTheoretical background: combines ideas from trust-region methods, gradient agreement (LG-AALR/BLAC) and curvature-aware scaling (AdaGrad/RMSProp). By weighting updates inversely to curvature, flat regions receive larger steps and sharp regions shrink, matching second-order intuition.\nAlgorithmic steps per K=30 updates:\n1. Compute cosine agreement between train and micro-dev gradients for each transformer block using 1-bit sign sketches; keep EMA with decay ρ.\n2. Compute EMA of ℓ2 gradient norm for each sub-module (QKV, attn-out, MLP, layer-norm) as curvature proxy.\n3. Positive agreements are normalised to get layer weights w_b; if all non-positive, reuse previous weights.\n4. Inverse curvature values are normalised within each block to get v_{b,m}.\n5. For active layers, parameter-group learning rate = LR_base × L_active × w_b × v_{b,m}.\n6. Layers whose agreement < θ_neg for F consecutive measurements enter \"probation\" where their gradients are quantised to int8 and scaled by γ. They exit probation as soon as (a) agreement turns positive or (b) their mean curvature falls below the median across blocks.\n7. Micro-dev buffer maintenance: every R steps replace 25 % of items with currently mis-predicted dev examples, preserving buffer size but refreshing its difficulty.\nKey hyper-parameters: ρ (EMA decay), K (measurement interval), θ_neg (negativity threshold), F (patience), γ (probation scale), R (refresh period). Defaults ρ=0.8, K=30, θ_neg=0.05, F=4, γ=0.1, R=500.\nImplementation: optimiser wrapper around any torch.optim optimiser; provides per-parameter-group LR scaling hooks and optional torch.compiler.fake_quant call when in probation. Adds <1 % compute overhead and negligible memory.",
+          "comparative_methods": [
+            "BLAC (Budgeted Layer Agreement Controller)"
+          ],
+          "models_to_use": [
+            "Qwen3-0.6B"
+          ],
+          "datasets_to_use": [
+            "gsm8k"
+          ],
+          "hyperparameters_to_search": [
+            {
+              "name": "base_learning_rate",
+              "range": "5e-5-3e-4"
+            },
+            {
+              "name": "rho",
+              "range": "0.7-0.9"
+            },
+            {
+              "name": "K",
+              "range": "20,30,40"
+            },
+            {
+              "name": "theta_neg",
+              "range": "0.02-0.08"
+            },
+            {
+              "name": "F",
+              "range": "2,4,6"
+            },
+            {
+              "name": "gamma",
+              "range": "0,0.1,0.3"
+            },
+            {
+              "name": "refresh",
+              "range": "400,500,600"
+            }
+          ]
+        },
+        "experiment_runs": [
+          {
+            "run_id": "proposed-iter1-Qwen3-0.6B-gsm8k",
+            "method_name": "proposed",
+            "model_name": "Qwen3-0.6B",
+            "dataset_name": "gsm8k"
+          },
+          {
+            "run_id": "comparative-1-iter1-Qwen3-0.6B-gsm8k",
+            "method_name": "comparative-1",
+            "model_name": "Qwen3-0.6B",
+            "dataset_name": "gsm8k"
+          }
+        ]
       }
     ]
   }
