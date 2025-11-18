@@ -130,7 +130,6 @@ class BLAC(BaseController):
         return {k: v.to(self.device, non_blocking=True) for k, v in batch.items()}
 
     # ------------------------------------------------------------------
-    @torch.no_grad()
     def _agreement_measure(self, train_grads: Dict[int, torch.Tensor]):
         # capture *dev* gradients ------------------------------------------------
         self.model.zero_grad(set_to_none=True)
@@ -261,7 +260,6 @@ class HACBO(BaseController):
         self._dev_iter = iter(self.dev_loader)
 
     # ------------------------------------------------------------------
-    @torch.no_grad()
     def _probe(self, train_grads: Dict[int, torch.Tensor]):
         """Compute train–dev agreement + curvature proxy."""
         # DEV gradients ---------------------------------------------------------
