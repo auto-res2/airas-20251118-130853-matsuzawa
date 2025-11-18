@@ -39,10 +39,9 @@ def build_model_and_optim(cfg: DictConfig):
     model = AutoModelForCausalLM.from_pretrained(
         cfg.model.name,
         cache_dir=".cache",
-        torch_dtype=getattr(torch, cfg.model.dtype),
+        dtype=getattr(torch, cfg.model.dtype),
         revision=cfg.model.revision,
         trust_remote_code=True,
-        device_map="auto",
     )
     if cfg.model.gradient_checkpointing:
         model.gradient_checkpointing_enable()
