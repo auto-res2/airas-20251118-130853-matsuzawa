@@ -264,8 +264,9 @@ class HACBO(BaseController):
         """Compute train–dev agreement + curvature proxy."""
         # DEV gradients ---------------------------------------------------------
         self.model.zero_grad(set_to_none=True)
-        dev_loss = self.model(**self._next_dev_batch()).loss
-        dev_loss.backward()
+        with torch.enable_grad():
+            dev_loss = self.model(**self._next_dev_batch()).loss
+            dev_loss.backward()
         dev_grads: Dict[int, torch.Tensor] = {}
         for gi, pg in enumerate(self.optim.param_groups):
             grads = [p.grad for p in pg["params"] if p.grad is not None]
