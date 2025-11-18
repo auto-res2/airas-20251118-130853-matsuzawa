@@ -9,6 +9,7 @@ import random
 import re
 from typing import Any, Dict, List
 
+import torch
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 
@@ -82,4 +83,33 @@ class GSM8KDataModule:  # pylint: disable=too-few-public-methods
 
     # ------------------------------------------------------------------
     def _collate(self, batch: List[Dict[str, Any]]):
-        return self.tokenizer.pad(batch, padding="longest", return_tensors="pt")
+        # Find max length in batch
+        max_len = max(len(item["input_ids"]) for item in batch)
+
+        # Manually pad each field
+        input_ids_list = []
+        labels_list = []
+        attention_mask_list = []
+
+        for item in batch:
+            curr_len = len(item["input_ids"])
+            pad_len = max_len - curr_len
+
+            # Pad input_ids with tokenizer.pad_token_id
+            padded_input_ids = item["input_ids"] + [self.tokenizer.pad_token_id] * pad_len
+            input_ids_list.append(padded_input_ids)
+
+            # Pad labels with -100 (ignore index)
+            padded_labels = item["labels"] + [-100] * pad_len
+            labels_list.append(padded_labels)
+
+            # Pad attention_mask with 0
+            padded_attention_mask = item["attention_mask"] + [0] * pad_len
+            attention_mask_list.append(padded_attention_mask)
+
+        # Convert to tensors
+        return {
+            "input_ids": torch.tensor(input_ids_list, dtype=torch.long),
+            "labels": torch.tensor(labels_list, dtype=torch.long),
+            "attention_mask": torch.tensor(attention_mask_list, dtype=torch.long),
+        }
