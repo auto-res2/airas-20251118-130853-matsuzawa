@@ -390,6 +390,9 @@ def _single_run(cfg: DictConfig) -> float:
             scaler.scale(loss).backward()
 
             if (global_step + 1) % grad_accum == 0:
+                # Unscale gradients first before accessing them
+                scaler.unscale_(optim)
+
                 # Train-grad snapshot per param group ---------------------------
                 train_grads: Dict[int, torch.Tensor] = {}
                 for gi, pg in enumerate(optim.param_groups):
@@ -400,7 +403,6 @@ def _single_run(cfg: DictConfig) -> float:
 
                 controller.on_update_end(train_grads)
 
-                scaler.unscale_(optim)
                 clip_grad_norm_(model.parameters(), cfg.training.max_grad_norm)
                 scaler.step(optim)
                 scaler.update()
