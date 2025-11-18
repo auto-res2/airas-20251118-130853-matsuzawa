@@ -471,3 +471,201 @@ Traceback (most recent call last):
 subprocess.CalledProcessError: Command '['/home/toma/pt80-1-a-29/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/bin/python3', '-u', '-m', 'src.train', 'run=proposed-iter1-Qwen3-0.6B-gsm8k', 'mode=full', 'results_dir=.research/iteration1']' returned non-zero exit status 1.
 
 Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+Using CPython 3.11.13
+Creating virtual environment at: .venv
+Resolved 108 packages in 181ms
+Installed 98 packages in 5.20s
+ + aiohappyeyeballs==2.6.1
+ + aiohttp==3.13.2
+ + aiosignal==1.4.0
+ + alembic==1.17.2
+ + annotated-types==0.7.0
+ + antlr4-python3-runtime==4.9.3
+ + anyio==4.11.0
+ + attrs==25.4.0
+ + certifi==2025.11.12
+ + charset-normalizer==3.4.4
+ + click==8.3.1
+ + colorlog==6.10.1
+ + contourpy==1.3.3
+ + cycler==0.12.1
+ + datasets==4.4.1
+ + dill==0.4.0
+ + filelock==3.20.0
+ + fonttools==4.60.1
+ + frozenlist==1.8.0
+ + fsspec==2025.10.0
+ + gitdb==4.0.12
+ + gitpython==3.1.45
+ + greenlet==3.2.4
+ + h11==0.16.0
+ + hf-xet==1.2.0
+ + httpcore==1.0.9
+ + httpx==0.28.1
+ + huggingface-hub==0.36.0
+ + hydra-core==1.3.2
+ + idna==3.11
+ + jinja2==3.1.6
+ + joblib==1.5.2
+ + kiwisolver==1.4.9
+ + mako==1.3.10
+ + markupsafe==3.0.3
+ + matplotlib==3.10.7
+ + mpmath==1.3.0
+ + multidict==6.7.0
+ + multiprocess==0.70.18
+ + networkx==3.5
+ + numpy==2.3.5
+ + nvidia-cublas-cu12==12.8.4.1
+ + nvidia-cuda-cupti-cu12==12.8.90
+ + nvidia-cuda-nvrtc-cu12==12.8.93
+ + nvidia-cuda-runtime-cu12==12.8.90
+ + nvidia-cudnn-cu12==9.10.2.21
+ + nvidia-cufft-cu12==11.3.3.83
+ + nvidia-cufile-cu12==1.13.1.3
+ + nvidia-curand-cu12==10.3.9.90
+ + nvidia-cusolver-cu12==11.7.3.90
+ + nvidia-cusparse-cu12==12.5.8.93
+ + nvidia-cusparselt-cu12==0.7.1
+ + nvidia-ml-py==13.580.82
+ + nvidia-nccl-cu12==2.27.5
+ + nvidia-nvjitlink-cu12==12.8.93
+ + nvidia-nvshmem-cu12==3.3.20
+ + nvidia-nvtx-cu12==12.8.90
+ + omegaconf==2.3.0
+ + optuna==4.6.0
+ + packaging==25.0
+ + pandas==2.3.3
+ + pillow==12.0.0
+ + platformdirs==4.5.0
+ + propcache==0.4.1
+ + protobuf==6.33.1
+ + pyarrow==22.0.0
+ + pydantic==2.12.4
+ + pydantic-core==2.41.5
+ + pynvml==13.0.1
+ + pyparsing==3.2.5
+ + python-dateutil==2.9.0.post0
+ + pytz==2025.2
+ + pyyaml==6.0.3
+ + regex==2025.11.3
+ + requests==2.32.5
+ + safetensors==0.6.2
+ + scikit-learn==1.7.2
+ + scipy==1.16.3
+ + seaborn==0.13.2
+ + sentry-sdk==2.45.0
+ + six==1.17.0
+ + smmap==5.0.2
+ + sniffio==1.3.1
+ + sqlalchemy==2.0.44
+ + sympy==1.14.0
+ + threadpoolctl==3.6.0
+ + tokenizers==0.22.1
+ + torch==2.9.1
+ + tqdm==4.67.1
+ + transformers==4.57.1
+ + triton==3.5.1
+ + typing-extensions==4.15.0
+ + typing-inspection==0.4.2
+ + tzdata==2025.2
+ + urllib3==2.5.0
+ + wandb==0.23.0
+ + xxhash==3.6.0
+ + yarl==1.22.0
+/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/main.py:18: UserWarning: 
+The version_base parameter is not specified.
+Please specify a compatability version level, or None.
+Will assume defaults for version 1.1
+  @hydra.main(config_path="../config", config_name="config")
+/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/hydra/_internal/hydra.py:119: UserWarning: Future Hydra versions will no longer change working directory at job runtime by default.
+See https://hydra.cc/docs/1.2/upgrades/1.1_to_1.2/changes_to_job_working_dir/ for more information.
+  ret = run_job(
+/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+[I 2025-11-18 15:39:43,494] A new study created in memory with name: no-name-f510a35e-cb55-45b0-98c4-df4c1ac7d4ed
+Generating train split:   0%|          | 0/7473 [00:00<?, ? examples/s]Generating train split: 100%|██████████| 7473/7473 [00:00<00:00, 177503.12 examples/s]
+Generating test split:   0%|          | 0/1319 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 1319/1319 [00:00<00:00, 191674.01 examples/s]
+tokenise-train (num_proc=8):   0%|          | 0/7473 [00:00<?, ? examples/s]tokenise-train (num_proc=8):   2%|▏         | 117/7473 [00:01<01:02, 116.77 examples/s]tokenise-train (num_proc=8):  12%|█▏        | 894/7473 [00:01<00:06, 1059.62 examples/s]tokenise-train (num_proc=8):  25%|██▍       | 1858/7473 [00:01<00:02, 2344.34 examples/s]tokenise-train (num_proc=8):  41%|████▏     | 3101/7473 [00:01<00:01, 4014.47 examples/s]tokenise-train (num_proc=8):  57%|█████▋    | 4278/7473 [00:01<00:00, 5537.08 examples/s]tokenise-train (num_proc=8):  71%|███████   | 5302/7473 [00:01<00:00, 6558.99 examples/s]tokenise-train (num_proc=8):  86%|████████▋ | 6452/7473 [00:01<00:00, 7431.17 examples/s]tokenise-train (num_proc=8): 100%|██████████| 7473/7473 [00:01<00:00, 6410.93 examples/s]tokenise-train (num_proc=8): 100%|██████████| 7473/7473 [00:02<00:00, 3309.57 examples/s]
+tokenise-dev (num_proc=8):   0%|          | 0/1319 [00:00<?, ? examples/s]tokenise-dev (num_proc=8):   9%|▉         | 117/1319 [00:01<00:10, 110.70 examples/s]tokenise-dev (num_proc=8):  25%|██▌       | 330/1319 [00:01<00:03, 325.68 examples/s]tokenise-dev (num_proc=8):  47%|████▋     | 616/1319 [00:01<00:01, 667.26 examples/s]tokenise-dev (num_proc=8):  63%|██████▎   | 825/1319 [00:01<00:00, 878.63 examples/s]tokenise-dev (num_proc=8):  83%|████████▎ | 1100/1319 [00:01<00:00, 1132.69 examples/s]tokenise-dev (num_proc=8): 100%|██████████| 1319/1319 [00:01<00:00, 1312.16 examples/s]tokenise-dev (num_proc=8): 100%|██████████| 1319/1319 [00:02<00:00, 648.07 examples/s] 
+`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`.
+/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/utils/checkpoint.py:85: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn(
+[W 2025-11-18 15:40:22,396] Trial 0 failed with parameters: {'base_learning_rate': 0.00015352577565505083, 'rho': 0.8189962722789483, 'K': 20, 'theta_neg': 0.07686421285024815, 'F': 4, 'gamma': 0.3, 'refresh': 500} because of the following error: RuntimeError('element 0 of tensors does not require grad and does not have a grad_fn').
+Traceback (most recent call last):
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/optuna/study/_optimize.py", line 205, in _run_trial
+    value_or_values = func(trial)
+                      ^^^^^^^^^^^
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/train.py", line 504, in _objective
+    acc = _single_run(cfg)
+          ^^^^^^^^^^^^^^^^
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/train.py", line 409, in _single_run
+    controller.on_update_end(train_grads)
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 120, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/train.py", line 301, in on_update_end
+    self._probe(train_grads)
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 120, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/train.py", line 270, in _probe
+    dev_loss.backward()
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn
+[W 2025-11-18 15:40:22,401] Trial 0 failed with value None.
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/train.py", line 554, in <module>
+    study.optimize(_optuna_objective(cfg), n_trials=cfg.optuna.n_trials)
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/optuna/study/study.py", line 490, in optimize
+    _optimize(
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/optuna/study/_optimize.py", line 67, in _optimize
+    _optimize_sequential(
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/optuna/study/_optimize.py", line 164, in _optimize_sequential
+    frozen_trial_id = _run_trial(study, func, catch)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/optuna/study/_optimize.py", line 262, in _run_trial
+    raise func_err
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/optuna/study/_optimize.py", line 205, in _run_trial
+    value_or_values = func(trial)
+                      ^^^^^^^^^^^
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/train.py", line 504, in _objective
+    acc = _single_run(cfg)
+          ^^^^^^^^^^^^^^^^
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/train.py", line 409, in _single_run
+    controller.on_update_end(train_grads)
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 120, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/train.py", line 301, in on_update_end
+    self._probe(train_grads)
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 120, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/train.py", line 270, in _probe
+    dev_loss.backward()
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn
+Error executing job with overrides: ['run=proposed-iter1-Qwen3-0.6B-gsm8k', 'results_dir=.research/iteration1', 'mode=full']
+Traceback (most recent call last):
+  File "/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/src/main.py", line 58, in main
+    subprocess.run(cmd, check=True, env=env)
+  File "/home/toma/.local/share/uv/python/cpython-3.11.13-linux-x86_64-gnu/lib/python3.11/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/bin/python3', '-u', '-m', 'src.train', 'run=proposed-iter1-Qwen3-0.6B-gsm8k', 'mode=full', 'results_dir=.research/iteration1']' returned non-zero exit status 1.
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
