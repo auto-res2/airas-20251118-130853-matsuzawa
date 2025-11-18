@@ -17,7 +17,7 @@ import torch
 import wandb
 from hydra import compose, initialize_config_dir
 from omegaconf import DictConfig, OmegaConf
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.nn.utils import clip_grad_norm_
 from transformers import get_cosine_schedule_with_warmup
 
@@ -375,7 +375,7 @@ def _single_run(cfg: DictConfig) -> float:
     else:
         wandb_run = None
 
-    scaler = GradScaler(enabled=cfg.training.mixed_precision.lower() in {"fp16", "bf16"})
+    scaler = GradScaler("cuda", enabled=cfg.training.mixed_precision.lower() == "fp16")
     model.train()
 
     grad_accum = cfg.training.gradient_accumulation_steps
@@ -385,7 +385,9 @@ def _single_run(cfg: DictConfig) -> float:
     for epoch in range(cfg.training.epochs):
         for batch in dm.train_loader:
             batch = {k: v.to(device, non_blocking=True) for k, v in batch.items()}
-            with autocast(enabled=cfg.training.mixed_precision.lower() in {"fp16", "bf16"}):
+            mp = cfg.training.mixed_precision.lower()
+            dtype = torch.float16 if mp == "fp16" else torch.bfloat16 if mp == "bf16" else torch.float32
+            with autocast("cuda", enabled=mp in {"fp16", "bf16"}, dtype=dtype):
                 loss = model(**batch).loss / grad_accum
             scaler.scale(loss).backward()
 
