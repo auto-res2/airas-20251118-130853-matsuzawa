@@ -5,3 +5,10 @@
 [train.py] final dev EM: 0.0000
 === [TRIAL RUN] PASSED for proposed-iter1-Qwen3-0.6B-gsm8k at Tue Nov 18 03:31:44 PM UTC 2025 ===
 
+=== [UV SYNC] Start at Tue Nov 18 03:32:56 PM UTC 2025 ===
+=== [UV SYNC] Finished successfully at Tue Nov 18 03:33:01 PM UTC 2025 ===
+=== [TRIAL RUN] Start for comparative-1-iter1-Qwen3-0.6B-gsm8k at Tue Nov 18 03:33:01 PM UTC 2025 ===
+[main] Running: /home/toma/t-80-8-b-03/_work/airas-20251118-130853-matsuzawa/airas-20251118-130853-matsuzawa/.venv/bin/python3 -u -m src.train run=comparative-1-iter1-Qwen3-0.6B-gsm8k mode=trial results_dir=.research/iteration1
+[train.py] final dev EM: 0.0000
+=== [TRIAL RUN] PASSED for comparative-1-iter1-Qwen3-0.6B-gsm8k at Tue Nov 18 03:34:32 PM UTC 2025 ===
+
