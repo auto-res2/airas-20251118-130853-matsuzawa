@@ -49,7 +49,7 @@ def main(cfg: DictConfig):
         f"mode={merged_cfg.mode}",
         f"results_dir={merged_cfg.results_dir}",
     ]
-    os.environ["HYDRA_PARENT_CONFIG_JSON"] = OmegaConf.to_json(merged_cfg)
+    os.environ["HYDRA_PARENT_CONFIG_JSON"] = json.dumps(OmegaConf.to_container(merged_cfg, resolve=True))
     print("[main] Running:", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True)
 
