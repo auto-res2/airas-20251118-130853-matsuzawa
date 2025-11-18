@@ -1,0 +1,116 @@
+{
+  "summary": {
+    "_runtime": 255,
+    "_step": 525,
+    "_timestamp": 1763490404.3544707,
+    "_wandb": {
+      "runtime": 255
+    },
+    "cumulative_kWh": 14.613169306285718,
+    "dev_em": 0,
+    "gpu_power_W": 255.64,
+    "lr": 0.00013771185760184723,
+    "step": 350,
+    "train_loss": "NaN"
+  },
+  "config": {
+    "run": "comparative-1-iter1-Qwen3-0.6B-gsm8k",
+    "mode": "full",
+    "seed": 42,
+    "model": {
+      "name": "Qwen/Qwen3-0.6B",
+      "dtype": "float16",
+      "params": "0.6B",
+      "revision": "main",
+      "context_length": 32768,
+      "gradient_checkpointing": true
+    },
+    "wandb": {
+      "mode": "online",
+      "entity": "gengaru617-personal",
+      "project": "2025-11-18-2"
+    },
+    "method": "BLAC",
+    "optuna": {
+      "n_trials": 40,
+      "direction": "maximize",
+      "search_space": {
+        "K": {
+          "type": "categorical",
+          "choices": [
+            20,
+            30,
+            40
+          ]
+        },
+        "U": {
+          "low": 100,
+          "high": 300,
+          "step": 50,
+          "type": "int"
+        },
+        "rho": {
+          "low": 0.7,
+          "high": 0.9,
+          "type": "uniform"
+        },
+        "base_learning_rate": {
+          "low": 5e-05,
+          "high": 0.0003,
+          "type": "loguniform"
+        }
+      }
+    },
+    "run_id": "comparative-1-iter1-Qwen3-0.6B-gsm8k",
+    "dataset": {
+      "name": "gsm8k",
+      "dev_split": "test",
+      "hf_subset": "main",
+      "train_split": "train",
+      "preprocessing": {
+        "remove_commas": true,
+        "strip_whitespace": true
+      },
+      "max_seq_length": 512,
+      "micro_dev_buffer": {
+        "size": 1024
+      }
+    },
+    "logging": {
+      "entity": "research",
+      "project": "blac_gsm8k",
+      "log_every_n_steps": 10,
+      "save_checkpoint_steps": 1000,
+      "keep_n_last_checkpoints": 3
+    },
+    "training": {
+      "epochs": 3,
+      "optimizer": {
+        "name": "AdamW",
+        "betas": [
+          0.9,
+          0.95
+        ]
+      },
+      "total_steps": 12000,
+      "lr_scheduler": "cosine",
+      "warmup_steps": 500,
+      "weight_decay": 0.1,
+      "max_grad_norm": 1,
+      "eval_batch_size": 32,
+      "mixed_precision": "bf16",
+      "train_batch_size": 64,
+      "base_learning_rate": 0.00019617073732456876,
+      "gradient_accumulation_steps": 1
+    },
+    "controller": {
+      "K": 20,
+      "U": 300,
+      "rho": 0.743609023175802,
+      "name": "blac",
+      "epsilon": 1e-08,
+      "global_norm_budget": 1
+    },
+    "results_dir": ".research/iteration1"
+  }
+}

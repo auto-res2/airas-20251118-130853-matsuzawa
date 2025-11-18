@@ -29,9 +29,32 @@ PRIMARY_METRIC_NAME = "Exact-Match accuracy on GSM8K dev split"
 
 def _parse():
     p = argparse.ArgumentParser()
-    p.add_argument("results_dir")
-    p.add_argument("run_ids")
-    return p.parse_args()
+    p.add_argument("--results_dir", required=False, default=None)
+    p.add_argument("--run_ids", required=False, default=None)
+    # Also support positional args for backwards compatibility
+    p.add_argument("positional_args", nargs="*", help="Positional arguments for results_dir and run_ids")
+    args = p.parse_args()
+
+    # Handle named arguments in format results_dir=value run_ids=value
+    if args.positional_args:
+        for arg in args.positional_args:
+            if "=" in arg:
+                key, value = arg.split("=", 1)
+                if key == "results_dir" and args.results_dir is None:
+                    args.results_dir = value
+                elif key == "run_ids" and args.run_ids is None:
+                    args.run_ids = value
+            else:
+                # Handle pure positional arguments
+                if args.results_dir is None:
+                    args.results_dir = arg
+                elif args.run_ids is None:
+                    args.run_ids = arg
+
+    if args.results_dir is None or args.run_ids is None:
+        p.error("Both results_dir and run_ids are required")
+
+    return args
 
 
 # ----------------------------------------------------------------------------------
@@ -53,47 +76,141 @@ def _export_json(obj, fp: Path):
 
 def _learning_curves(run: wandb.apis.public.Run, out_dir: Path):
     hist = run.history()
+
+    # Convert all numeric columns, handling NaN strings properly
+    for col in hist.columns:
+        if col != "_step":
+            try:
+                # Replace string "NaN" with actual np.nan
+                hist[col] = hist[col].replace("NaN", np.nan).infer_objects(copy=False)
+                # Try to convert to numeric
+                hist[col] = pd.to_numeric(hist[col], errors='coerce')
+            except Exception:
+                pass  # Keep as-is if conversion fails
+
     # --- learning curve -------------------------------------------------------
     if {"train_loss", "step"}.issubset(hist.columns):
-        plt.figure(figsize=(6, 4))
-        sns.lineplot(data=hist, x="step", y="train_loss", label="train_loss")
-        if "val_loss" in hist.columns:
-            sns.lineplot(data=hist, x="step", y="val_loss", label="val_loss")
-        plt.title(f"Loss – {run.id}")
-        plt.tight_layout()
-        fp = out_dir / f"{run.id}_loss_curve.pdf"
-        plt.savefig(fp)
-        plt.close()
-        print(fp)
+        # Drop rows where train_loss is NaN, but keep sparse data
+        plot_data = hist[["step", "train_loss"]].dropna(subset=["train_loss"])
+        if len(plot_data) > 0:
+            fig, ax = plt.subplots(figsize=(8, 5))
+
+            # Use scatter + line for sparse data, or just line for dense data
+            if len(plot_data) < 20:
+                # Sparse data: show markers prominently
+                ax.plot(plot_data["step"], plot_data["train_loss"],
+                       marker='o', markersize=6, linewidth=1.5,
+                       label="train_loss", color='#1f77b4')
+            else:
+                # Dense data: regular line plot
+                sns.lineplot(data=plot_data, x="step", y="train_loss",
+                           label="train_loss", ax=ax, linewidth=2)
+
+            # Add validation loss if available
+            if "val_loss" in hist.columns:
+                val_data = hist[["step", "val_loss"]].dropna(subset=["val_loss"])
+                if len(val_data) > 0:
+                    if len(val_data) < 20:
+                        ax.plot(val_data["step"], val_data["val_loss"],
+                               marker='s', markersize=6, linewidth=1.5,
+                               label="val_loss", color='#ff7f0e')
+                    else:
+                        sns.lineplot(data=val_data, x="step", y="val_loss",
+                                   label="val_loss", ax=ax, linewidth=2)
+
+            ax.set_xlabel("Training Step", fontsize=11)
+            ax.set_ylabel("Loss", fontsize=11)
+            ax.set_title(f"Training Loss Curve – {run.id}", fontsize=12, fontweight='bold')
+            ax.legend(loc='best', fontsize=10)
+            ax.grid(True, alpha=0.3)
+
+            # Set reasonable x-axis limits
+            step_min, step_max = plot_data["step"].min(), plot_data["step"].max()
+            if step_min == step_max:
+                # Single point: create a reasonable range around it
+                ax.set_xlim(max(0, step_min - 10), step_min + 10)
+                # Add note about sparse data
+                if len(plot_data) == 1:
+                    ax.text(0.98, 0.02, f'Note: Only {len(plot_data)} data point available\n(Sparse logging)',
+                           transform=ax.transAxes, fontsize=9, ha='right', va='bottom',
+                           bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.7))
+            else:
+                # Add 5% padding on each side
+                step_range = step_max - step_min
+                ax.set_xlim(step_min - 0.05 * step_range, step_max + 0.05 * step_range)
+                # Add note if very sparse
+                if len(plot_data) < 5:
+                    ax.text(0.98, 0.02, f'Note: Only {len(plot_data)} data points available\n(Sparse logging)',
+                           transform=ax.transAxes, fontsize=9, ha='right', va='bottom',
+                           bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.7))
+
+            plt.tight_layout()
+            fp = out_dir / f"{run.id}_loss_curve.pdf"
+            plt.savefig(fp, dpi=300, bbox_inches='tight')
+            plt.close()
+            print(fp)
 
     # --- primary metric curve -------------------------------------------------
     if PRIMARY_METRIC_KEY in hist.columns:
-        plt.figure(figsize=(6, 4))
-        sns.lineplot(data=hist, x="step", y=PRIMARY_METRIC_KEY)
-        plt.ylabel(PRIMARY_METRIC_NAME)
-        plt.title(f"{PRIMARY_METRIC_NAME} – {run.id}")
-        plt.tight_layout()
-        fp = out_dir / f"{run.id}_primary_metric_curve.pdf"
-        plt.savefig(fp)
-        plt.close()
-        print(fp)
+        plot_data = hist[["step", PRIMARY_METRIC_KEY]].dropna(subset=[PRIMARY_METRIC_KEY])
+        if len(plot_data) > 0:
+            fig, ax = plt.subplots(figsize=(8, 5))
+
+            # Use scatter + line for sparse data
+            if len(plot_data) < 20:
+                ax.plot(plot_data["step"], plot_data[PRIMARY_METRIC_KEY],
+                       marker='o', markersize=6, linewidth=1.5,
+                       color='#2ca02c')
+            else:
+                sns.lineplot(data=plot_data, x="step", y=PRIMARY_METRIC_KEY,
+                           ax=ax, linewidth=2, color='#2ca02c')
+
+            ax.set_xlabel("Training Step", fontsize=11)
+            ax.set_ylabel(PRIMARY_METRIC_NAME, fontsize=11)
+            ax.set_title(f"{PRIMARY_METRIC_NAME}\n{run.id}", fontsize=12, fontweight='bold')
+            ax.grid(True, alpha=0.3)
+
+            # Set reasonable x-axis limits
+            step_min, step_max = plot_data["step"].min(), plot_data["step"].max()
+            if step_min == step_max:
+                ax.set_xlim(max(0, step_min - 10), step_min + 10)
+            else:
+                step_range = step_max - step_min
+                ax.set_xlim(step_min - 0.05 * step_range, step_max + 0.05 * step_range)
+
+            # Set y-axis to start at 0 for accuracy metrics
+            y_min, y_max = plot_data[PRIMARY_METRIC_KEY].min(), plot_data[PRIMARY_METRIC_KEY].max()
+            ax.set_ylim(0, max(1.0, y_max * 1.1))
+
+            plt.tight_layout()
+            fp = out_dir / f"{run.id}_primary_metric_curve.pdf"
+            plt.savefig(fp, dpi=300, bbox_inches='tight')
+            plt.close()
+            print(fp)
 
     # --- confusion matrix (binary: correct vs incorrect) ----------------------
     if {PRIMARY_METRIC_KEY, "step"}.issubset(hist.columns):
         # classify each step based on running EM above median vs below
-        em_vals = hist[PRIMARY_METRIC_KEY].fillna(method="ffill").values
-        median_em = np.nanmedian(em_vals)
-        preds = em_vals > median_em
-        trues = preds.copy()  # proxy since we don't have per-example labels
-        cm = pd.crosstab(pd.Series(trues, name="True"), pd.Series(preds, name="Pred"))
-        plt.figure(figsize=(4, 3))
-        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
-        plt.title(f"Confusion (proxy) – {run.id}")
-        plt.tight_layout()
-        fp = out_dir / f"{run.id}_confusion_matrix.pdf"
-        plt.savefig(fp)
-        plt.close()
-        print(fp)
+        em_vals = hist[PRIMARY_METRIC_KEY].ffill().values
+        em_vals_clean = em_vals[~np.isnan(em_vals)]
+        if len(em_vals_clean) > 0:
+            median_em = np.nanmedian(em_vals_clean)
+            preds = em_vals > median_em
+            trues = preds.copy()  # proxy since we don't have per-example labels
+            # Remove NaN values
+            valid_mask = ~np.isnan(em_vals)
+            preds = preds[valid_mask]
+            trues = trues[valid_mask]
+            if len(preds) > 0:
+                cm = pd.crosstab(pd.Series(trues, name="True"), pd.Series(preds, name="Pred"))
+                plt.figure(figsize=(4, 3))
+                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+                plt.title(f"Confusion (proxy) – {run.id}")
+                plt.tight_layout()
+                fp = out_dir / f"{run.id}_confusion_matrix.pdf"
+                plt.savefig(fp, dpi=300)
+                plt.close()
+                print(fp)
 
 
 # ----------------------------------------------------------------------------------
@@ -134,15 +251,61 @@ def _aggregated(runs: List[wandb.apis.public.Run], res_dir: Path):
         pd.DataFrame(list(metric_map[PRIMARY_METRIC_KEY].items()), columns=["run_id", "value"])
         .sort_values("value", ascending=False)
     )
-    plt.figure(figsize=(max(6, 0.6 * len(df)), 4))
-    sns.barplot(data=df, x="run_id", y="value", palette="viridis")
-    plt.ylabel(PRIMARY_METRIC_NAME)
-    plt.xticks(rotation=45, ha="right")
-    for idx, row in df.iterrows():  # annotate values
-        plt.text(idx, row.value + 1e-3, f"{row.value:.3f}", ha="center", va="bottom")
+
+    # Create color mapping: proposed runs in one color, baseline/comparative in another
+    colors = []
+    for rid in df["run_id"]:
+        if "proposed" in rid or "hacbo" in rid:
+            colors.append('#2ecc71')  # Green for proposed
+        elif "baseline" in rid or "comparative" in rid or "blac" in rid:
+            colors.append('#3498db')  # Blue for baseline/comparative
+        else:
+            colors.append('#95a5a6')  # Gray for others
+
+    fig, ax = plt.subplots(figsize=(max(8, 1.2 * len(df)), 6))
+    bars = ax.bar(range(len(df)), df["value"], color=colors, edgecolor='black', linewidth=1.2)
+
+    # Annotate values on top of bars
+    for idx, (bar, row) in enumerate(zip(bars, df.itertuples())):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height + 0.005,
+               f'{row.value:.4f}',
+               ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+    # Set labels and title
+    ax.set_ylabel(PRIMARY_METRIC_NAME, fontsize=12, fontweight='bold')
+    ax.set_xlabel("Run ID", fontsize=12, fontweight='bold')
+    ax.set_title("Comparison of Primary Metric Across Runs", fontsize=14, fontweight='bold', pad=20)
+
+    # Set x-tick labels
+    ax.set_xticks(range(len(df)))
+    ax.set_xticklabels(df["run_id"], rotation=45, ha="right", fontsize=10)
+
+    # Set y-axis to start at 0
+    y_max = max(df["value"].max() * 1.15, 0.1)
+    ax.set_ylim(0, y_max)
+
+    # Add grid for better readability
+    ax.grid(True, alpha=0.3, axis='y')
+    ax.set_axisbelow(True)
+
+    # Add note if all values are zero
+    if df["value"].max() == 0.0:
+        ax.text(0.5, 0.5, 'Note: All runs have zero accuracy\n(Model may not have converged)',
+               transform=ax.transAxes, fontsize=11, ha='center', va='center',
+               bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+    # Add legend
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor='#2ecc71', edgecolor='black', label='Proposed Method'),
+        Patch(facecolor='#3498db', edgecolor='black', label='Baseline/Comparative')
+    ]
+    ax.legend(handles=legend_elements, loc='upper right', fontsize=10)
+
     plt.tight_layout()
     fp = cmp_dir / "comparison_primary_metric_bar.pdf"
-    plt.savefig(fp)
+    plt.savefig(fp, dpi=300, bbox_inches='tight')
     plt.close()
     print(fp)
 
@@ -154,7 +317,7 @@ def _aggregated(runs: List[wandb.apis.public.Run], res_dir: Path):
         sig = {
             "t_statistic": float(t_stat),
             "p_value": float(p_val),
-            "significant": p_val < 0.05,
+            "significant": bool(p_val < 0.05),
         }
         _export_json(sig, cmp_dir / "significance_ttest.json")
         print(cmp_dir / "significance_ttest.json")

@@ -1,0 +1,152 @@
+{
+  "summary": {
+    "_runtime": 130,
+    "_step": 441,
+    "_timestamp": 1763487280.0911534,
+    "_wandb": {
+      "runtime": 130
+    },
+    "cumulative_kWh": 13.850558953867951,
+    "dev_em": 0,
+    "gpu_power_W": 469.492,
+    "lr": 4.508187662620268e-05,
+    "step": 350,
+    "train_loss": "NaN"
+  },
+  "config": {
+    "run": "proposed-iter1-Qwen3-0.6B-gsm8k",
+    "mode": "full",
+    "seed": 42,
+    "model": {
+      "name": "Qwen/Qwen3-0.6B",
+      "dtype": "float16",
+      "params": "0.6B",
+      "revision": "main",
+      "context_length": 32768,
+      "gradient_checkpointing": true
+    },
+    "wandb": {
+      "mode": "online",
+      "entity": "gengaru617-personal",
+      "project": "2025-11-18-2"
+    },
+    "method": "HACBO",
+    "optuna": {
+      "n_trials": 50,
+      "direction": "maximize",
+      "search_space": {
+        "F": {
+          "type": "categorical",
+          "choices": [
+            2,
+            4,
+            6
+          ]
+        },
+        "K": {
+          "type": "categorical",
+          "choices": [
+            20,
+            30,
+            40
+          ]
+        },
+        "rho": {
+          "low": 0.7,
+          "high": 0.9,
+          "type": "uniform"
+        },
+        "gamma": {
+          "type": "categorical",
+          "choices": [
+            0,
+            0.1,
+            0.3
+          ]
+        },
+        "refresh": {
+          "type": "categorical",
+          "choices": [
+            400,
+            500,
+            600
+          ]
+        },
+        "theta_neg": {
+          "low": 0.02,
+          "high": 0.08,
+          "type": "uniform"
+        },
+        "base_learning_rate": {
+          "low": 5e-05,
+          "high": 0.0003,
+          "type": "loguniform"
+        }
+      }
+    },
+    "run_id": "proposed-iter1-Qwen3-0.6B-gsm8k",
+    "dataset": {
+      "name": "gsm8k",
+      "dev_split": "test",
+      "hf_subset": "main",
+      "train_split": "train",
+      "preprocessing": {
+        "remove_commas": true,
+        "strip_whitespace": true
+      },
+      "max_seq_length": 512,
+      "micro_dev_buffer": {
+        "size": 1024,
+        "refresh_fraction": 0.25,
+        "refresh_interval": 500
+      }
+    },
+    "logging": {
+      "entity": "research",
+      "project": "hacbo_gsm8k",
+      "log_every_n_steps": 10,
+      "save_checkpoint_steps": 1000,
+      "keep_n_last_checkpoints": 3
+    },
+    "training": {
+      "epochs": 3,
+      "optimizer": {
+        "name": "AdamW",
+        "betas": [
+          0.9,
+          0.95
+        ]
+      },
+      "total_steps": 12000,
+      "lr_scheduler": "cosine",
+      "warmup_steps": 500,
+      "weight_decay": 0.1,
+      "max_grad_norm": 1,
+      "eval_batch_size": 32,
+      "mixed_precision": "bf16",
+      "train_batch_size": 64,
+      "base_learning_rate": 6.42191974732232e-05,
+      "gradient_accumulation_steps": 1
+    },
+    "controller": {
+      "F": 6,
+      "K": 30,
+      "rho": 0.8623292500829454,
+      "name": "hacbo",
+      "gamma": 0,
+      "refresh": 600,
+      "theta_neg": 0.04118982525538434,
+      "sub_modules": [
+        "attn_qkv",
+        "attn_out",
+        "mlp",
+        "ln"
+      ],
+      "curvature_metric": "rms_grad_l2",
+      "epsilon_curvature": 1e-08,
+      "trust_region_radius": 1,
+      "fake_quant_precision": "int8"
+    },
+    "results_dir": ".research/iteration1"
+  }
+}
